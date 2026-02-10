@@ -1,0 +1,846 @@
+openapi: 3.1.0
+info:
+  title: Impulse API
+  version: 1.0.0
+  description: |
+    REST API for the Impulse Activity App.
+    All endpoints prefixed with /api/v1.
+    Authentication via JWT Bearer token unless noted.
+
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Local development
+  - url: https://impulse-staging.fly.dev/api/v1
+    description: Staging
+  - url: https://api.impulse.app/api/v1
+    description: Production
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    RefreshAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        details:
+          type: object
+
+    User:
+      type: object
+      required: [id, display_name, avatar_preset, subscription_tier,
+                 activities_joined_count, activities_created_count]
+      properties:
+        id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+          maxLength: 30
+        avatar_preset:
+          type: integer
+        preferred_presets:
+          type: array
+          items:
+            type: integer
+        zone:
+          $ref: '#/components/schemas/ZoneSummary'
+        subscription_tier:
+          type: string
+          enum: [free, pro]
+        activities_joined_count:
+          type: integer
+        activities_created_count:
+          type: integer
+
+    UserUpdate:
+      type: object
+      properties:
+        display_name:
+          type: string
+          minLength: 2
+          maxLength: 30
+        avatar_preset:
+          type: integer
+          minimum: 1
+          maximum: 20
+        preferred_presets:
+          type: array
+          items:
+            type: integer
+        zone_id:
+          type: string
+          format: uuid
+
+    Activity:
+      type: object
+      required: [id, creator_id, mode, preset, title, location,
+                 starts_at, duration_minutes, max_participants,
+                 min_participants, status, participant_count]
+      properties:
+        id:
+          type: string
+          format: uuid
+        creator_id:
+          type: string
+          format: uuid
+        mode:
+          type: string
+          enum: [flash, planned, recurring]
+        preset:
+          $ref: '#/components/schemas/PresetSummary'
+        title:
+          type: string
+          maxLength: 60
+        location:
+          $ref: '#/components/schemas/GeoPoint'
+        location_name:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        duration_minutes:
+          type: integer
+        max_participants:
+          type: integer
+        min_participants:
+          type: integer
+        status:
+          type: string
+          enum: [open, full, active, completed, cancelled]
+        participant_count:
+          type: integer
+        confirmed_count:
+          type: integer
+
+    ActivityCreate:
+      type: object
+      required: [mode, preset_id, lat, lng, starts_at,
+                 duration_minutes, max_participants]
+      properties:
+        mode:
+          type: string
+          enum: [flash, planned]
+        preset_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 60
+        lat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        lng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        location_name:
+          type: string
+          maxLength: 100
+        starts_at:
+          type: string
+          format: date-time
+        duration_minutes:
+          type: integer
+          minimum: 30
+          maximum: 360
+        max_participants:
+          type: integer
+          minimum: 3
+          maximum: 20
+
+    GeoPoint:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat:
+          type: number
+          format: double
+        lng:
+          type: number
+          format: double
+
+    PresetSummary:
+      type: object
+      required: [id, name, icon]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        icon:
+          type: string
+
+    ZoneSummary:
+      type: object
+      required: [id, city, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        city:
+          type: string
+        name:
+          type: string
+
+    Preset:
+      type: object
+      required: [id, name, icon, locale, allowed_hours, max_duration]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        icon:
+          type: string
+        locale:
+          type: string
+        allowed_hours:
+          type: object
+          properties:
+            start:
+              type: integer
+            end:
+              type: integer
+        max_duration:
+          type: integer
+
+    Badge:
+      type: object
+      required: [id, type, earned_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        earned_at:
+          type: string
+          format: date-time
+
+    Trophy:
+      type: object
+      required: [id, type, earned_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        earned_at:
+          type: string
+          format: date-time
+
+    Participation:
+      type: object
+      required: [id, user_id, activity_id, status, joined_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        activity_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [joined, confirmed, attended, no_show, cancelled]
+        joined_at:
+          type: string
+          format: date-time
+        confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Feedback:
+      type: object
+      required: [score]
+      properties:
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+        text:
+          type: string
+          maxLength: 200
+
+    AuthTokens:
+      type: object
+      required: [access_token, refresh_token]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    Subscription:
+      type: object
+      required: [id, status, current_period_end]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [active, past_due, cancelled, expired]
+        current_period_end:
+          type: string
+          format: date-time
+
+paths:
+  # ── Authentication ──────────────────────────────────────────
+  /auth/request-code:
+    post:
+      tags: [Authentication]
+      summary: Send SMS verification code
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone:
+                  type: string
+                  description: E.164 format phone number
+                device_fingerprint:
+                  type: string
+                  description: SHA-256 device fingerprint
+      responses:
+        '200':
+          description: Code sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/verify:
+    post:
+      tags: [Authentication]
+      summary: Verify SMS code and return tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone:
+                  type: string
+                code:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+                device_fingerprint:
+                  type: string
+      responses:
+        '200':
+          description: Verified — returns JWT tokens and user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokens'
+        '401':
+          description: Invalid code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      security:
+        - RefreshAuth: []
+      responses:
+        '200':
+          description: New access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokens'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── User Profile ────────────────────────────────────────────
+  /me:
+    get:
+      tags: [Profile]
+      summary: Get current user profile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    patch:
+      tags: [Profile]
+      summary: Update current user profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /me/badges:
+    get:
+      tags: [Profile]
+      summary: Get current user badges
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of badges
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Badge'
+
+  /me/trophies:
+    get:
+      tags: [Profile]
+      summary: Get current user trophies
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of trophies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Trophy'
+
+  # ── Activities ──────────────────────────────────────────────
+  /activities:
+    get:
+      tags: [Activities]
+      summary: List activities (geo query + filters)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: radius
+          in: query
+          schema:
+            type: integer
+            default: 2000
+            maximum: 5000
+          description: Search radius in meters
+        - name: mode
+          in: query
+          schema:
+            type: string
+            enum: [flash, planned, all]
+            default: flash
+        - name: preset
+          in: query
+          schema:
+            type: string
+          description: Filter by preset name
+      responses:
+        '200':
+          description: Activities within search area
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Activity'
+
+    post:
+      tags: [Activities]
+      summary: Create a new activity
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivityCreate'
+      responses:
+        '201':
+          description: Activity created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Activity'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Limit reached (free tier planned activity limit)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /activities/upcoming:
+    get:
+      tags: [Activities]
+      summary: List planned activities (upcoming feed)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: radius
+          in: query
+          schema:
+            type: integer
+            default: 5000
+            maximum: 10000
+      responses:
+        '200':
+          description: Upcoming planned activities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Activity'
+
+  /activities/{id}/join:
+    post:
+      tags: [Activities]
+      summary: Join an activity
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Joined successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Participation'
+        '409':
+          description: Activity is full or already joined
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /activities/{id}/leave:
+    post:
+      tags: [Activities]
+      summary: Leave an activity
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Left successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /activities/{id}/confirm:
+    post:
+      tags: [Activities]
+      summary: Confirm attendance for a planned activity
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Participation'
+        '422':
+          description: Not a planned activity or confirmation window not open
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /activities/{id}/feedback:
+    post:
+      tags: [Activities]
+      summary: Submit post-activity feedback
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Feedback'
+      responses:
+        '200':
+          description: Feedback submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '422':
+          description: Activity not completed or already submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Presets ─────────────────────────────────────────────────
+  /presets:
+    get:
+      tags: [Presets]
+      summary: Get activity presets for current locale
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: locale
+          in: query
+          schema:
+            type: string
+            default: pt-BR
+      responses:
+        '200':
+          description: Available presets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Preset'
+
+  # ── Reports ─────────────────────────────────────────────────
+  /reports:
+    post:
+      tags: [Safety]
+      summary: Report a user or activity
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reported_id, reason]
+              properties:
+                reported_id:
+                  type: string
+                  format: uuid
+                activity_id:
+                  type: string
+                  format: uuid
+                reason:
+                  type: string
+                  maxLength: 50
+                details:
+                  type: string
+                  maxLength: 500
+      responses:
+        '201':
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  # ── Subscriptions ───────────────────────────────────────────
+  /subscriptions:
+    post:
+      tags: [Billing]
+      summary: Create a Stripe subscription (returns checkout URL)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Checkout session URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checkout_url:
+                    type: string
+                    format: uri
+    delete:
+      tags: [Billing]
+      summary: Cancel current subscription
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Subscription cancelled at period end
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '404':
+          description: No active subscription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Devices ─────────────────────────────────────────────────
+  /devices:
+    post:
+      tags: [Devices]
+      summary: Register device and push notification token
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [push_token, platform]
+              properties:
+                push_token:
+                  type: string
+                platform:
+                  type: string
+                  enum: [ios, android]
+                fingerprint:
+                  type: string
+      responses:
+        '200':
+          description: Device registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
