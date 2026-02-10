@@ -1,0 +1,54 @@
+# Elixir / Phoenix
+apps/api/_build/
+apps/api/deps/
+apps/api/*.ez
+apps/api/cover/
+apps/api/doc/
+apps/api/.fetch
+apps/api/erl_crash.dump
+apps/api/*.beam
+apps/api/config/dev.secret.exs
+apps/api/config/test.secret.exs
+apps/api/config/prod.secret.exs
+apps/api/tmp/
+
+# React Native / Expo
+apps/mobile/node_modules/
+apps/mobile/.expo/
+apps/mobile/dist/
+apps/mobile/ios/Pods/
+apps/mobile/ios/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/android/build/
+apps/mobile/android/local.properties
+apps/mobile/*.jks
+apps/mobile/*.keystore
+apps/mobile/metro-*.log
+
+# Shared package
+packages/shared/node_modules/
+packages/shared/dist/
+
+# Infrastructure
+infra/.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Secrets
+*.pem
+*.key

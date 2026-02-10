@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Elixir build artifacts
+apps/api/_build
+apps/api/deps
+apps/api/cover
+apps/api/doc
+apps/api/tmp
+
+# React Native
+apps/mobile/node_modules
+apps/mobile/.expo
+apps/mobile/ios/Pods
+apps/mobile/ios/build
+apps/mobile/android/.gradle
+apps/mobile/android/app/build
+apps/mobile/android/build
+
+# Packages
+packages/shared/node_modules
+packages/shared/dist
+
+# Specs and docs
+specs/
+.specify/
+*.md
+
+# IDE and OS
+.idea
+.vscode
+.DS_Store
