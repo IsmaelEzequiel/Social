@@ -17,6 +17,7 @@ defmodule ImpulseWeb.AuthJSON do
       preferred_presets: user.preferred_presets,
       zone_id: user.zone_id,
       subscription_tier: user.subscription_tier,
+      auth_provider: user.auth_provider,
       activities_joined_count: user.activities_joined_count,
       activities_created_count: user.activities_created_count,
       inserted_at: user.inserted_at,

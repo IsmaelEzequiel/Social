@@ -17,6 +17,7 @@ defmodule ImpulseWeb.Router do
     post "/auth/request-code", AuthController, :request_code
     post "/auth/verify", AuthController, :verify
     post "/auth/refresh", AuthController, :refresh
+    post "/auth/social", AuthController, :social_login
 
     get "/presets", PresetController, :index
 
@@ -55,13 +56,19 @@ defmodule ImpulseWeb.Router do
     delete "/subscriptions", SubscriptionController, :delete
   end
 
-  # Enable LiveDashboard in development
+  # Enable LiveDashboard and dev auth bypass in development
   if Application.compile_env(:impulse, :dev_routes) do
     import Phoenix.LiveDashboard.Router
 
     scope "/dev" do
       pipe_through [:fetch_session, :protect_from_forgery]
       live_dashboard "/dashboard", metrics: ImpulseWeb.Telemetry
+    end
+
+    # Dev-only: bypass SMS verification for testing
+    scope "/api/v1/dev", ImpulseWeb do
+      pipe_through :api
+      post "/auth/login", DevAuthController, :login
     end
   end
 end

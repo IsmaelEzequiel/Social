@@ -1,6 +1,25 @@
 defmodule Impulse.MixProject do
   use Mix.Project
 
+  # Load .env file into system environment (dev/test only)
+  if File.exists?(".env") and Mix.env() in [:dev, :test] do
+    File.read!(".env")
+    |> String.split("\n")
+    |> Enum.each(fn line ->
+      line = String.trim(line)
+
+      unless line == "" or String.starts_with?(line, "#") do
+        case String.split(line, "=", parts: 2) do
+          [key, value] ->
+            System.put_env(String.trim(key), String.trim(value))
+
+          _ ->
+            :skip
+        end
+      end
+    end)
+  end
+
   def project do
     [
       app: :impulse,
@@ -60,7 +79,8 @@ defmodule Impulse.MixProject do
       {:req, "~> 0.5"},
 
       # CORS
-      {:corsica, "~> 2.1"}
+      {:corsica, "~> 2.1"},
+
     ]
   end
 

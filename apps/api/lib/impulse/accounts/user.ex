@@ -17,6 +17,9 @@ defmodule Impulse.Accounts.User do
     field :status, Ecto.Enum, values: [:active, :shadow_banned, :suspended], default: :active
     field :activities_joined_count, :integer, default: 0
     field :activities_created_count, :integer, default: 0
+    field :auth_provider, :string, default: "phone"
+    field :auth_provider_id, :string
+    field :email, :string
 
     belongs_to :zone, Impulse.Geo.Zone
 
@@ -36,6 +39,9 @@ defmodule Impulse.Accounts.User do
     :activities_created_count
   ]
 
+  @social_required_fields [:auth_provider, :auth_provider_id, :display_name, :device_fingerprint]
+  @social_optional_fields [:email | @optional_fields]
+
   def registration_changeset(user, attrs) do
     user
     |> cast(attrs, @required_fields ++ @optional_fields)
@@ -45,7 +51,22 @@ defmodule Impulse.Accounts.User do
     |> validate_length(:phone_hash, is: 64)
     |> validate_length(:device_fingerprint, is: 64)
     |> validate_inclusion(:avatar_preset, 1..20)
-    |> unique_constraint(:phone_hash)
+    |> unique_constraint(:phone_hash, name: :users_phone_hash_index)
+    |> unique_constraint(:device_fingerprint)
+  end
+
+  def social_registration_changeset(user, attrs) do
+    user
+    |> cast(attrs, @social_required_fields ++ @social_optional_fields)
+    |> validate_required(@social_required_fields)
+    |> validate_length(:display_name, min: 2, max: 30)
+    |> validate_format(:display_name, ~r/^[a-zA-ZÀ-ÿ0-9 \-]+$/)
+    |> validate_length(:device_fingerprint, is: 64)
+    |> validate_inclusion(:avatar_preset, 1..20)
+    |> validate_inclusion(:auth_provider, ["google", "apple"])
+    |> unique_constraint([:auth_provider, :auth_provider_id],
+      name: :users_auth_provider_provider_id_index
+    )
     |> unique_constraint(:device_fingerprint)
   end
 

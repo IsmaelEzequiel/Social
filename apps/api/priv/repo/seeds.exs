@@ -185,3 +185,35 @@ for attrs <- zones do
 end
 
 IO.puts("Seeded #{length(zones)} zones")
+
+# Admin user for dev/testing
+alias Impulse.Accounts.User
+
+admin_phone_hash =
+  :crypto.hash(:sha256, "+5511999999999") |> Base.encode16(case: :lower)
+
+admin_fingerprint =
+  :crypto.hash(:sha256, "admin-dev-device") |> Base.encode16(case: :lower)
+
+case Impulse.Repo.get_by(User, phone_hash: admin_phone_hash) do
+  nil ->
+    %User{}
+    |> User.registration_changeset(%{
+      phone_hash: admin_phone_hash,
+      device_fingerprint: admin_fingerprint,
+      display_name: "Admin",
+      avatar_preset: 1,
+      subscription_tier: :pro,
+      trust_score: 1.0,
+      status: :active
+    })
+    |> Repo.insert!()
+    |> then(fn user ->
+      IO.puts("Seeded admin user: #{user.id}")
+      IO.puts("  phone: +5511999999999")
+      IO.puts("  phone_hash: #{admin_phone_hash}")
+    end)
+
+  user ->
+    IO.puts("Admin user already exists: #{user.id}")
+end

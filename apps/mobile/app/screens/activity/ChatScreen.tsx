@@ -9,11 +9,12 @@ import {
   Platform,
   StyleSheet,
 } from "react-native"
-import { useTranslation } from "react-i18next"
 import { useRoute, useNavigation, RouteProp } from "@react-navigation/native"
-import { socketService } from "@/services/socket/socket-service"
-import type { AppStackParamList } from "@/navigators/navigationTypes"
 import type { Channel } from "phoenix"
+import { useTranslation } from "react-i18next"
+
+import type { AppStackParamList } from "@/navigators/navigationTypes"
+import { socketService } from "@/services/socket/socket-service"
 
 type Route = RouteProp<AppStackParamList, "Chat">
 
@@ -130,68 +131,68 @@ export const ChatScreen = () => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
-  header: {
-    flexDirection: "row",
+  avatarCircle: {
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 60,
-    paddingBottom: 12,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    backgroundColor: "#6C63FF",
+    borderRadius: 18,
+    height: 36,
+    justifyContent: "center",
+    marginRight: 10,
+    width: 36,
   },
+  avatarText: { color: "#fff", fontSize: 14, fontWeight: "700" },
   backText: { color: "#6C63FF", fontSize: 16 },
-  headerTitle: { fontSize: 18, fontWeight: "700" },
+  container: { backgroundColor: "#f8f8f8", flex: 1 },
   ephemeralNotice: {
+    alignItems: "center",
     backgroundColor: "#FFF3CD",
     padding: 10,
+  },
+  ephemeralText: { color: "#856404", fontSize: 12 },
+  header: {
     alignItems: "center",
-  },
-  ephemeralText: { fontSize: 12, color: "#856404" },
-  listContent: { padding: 16, paddingBottom: 8 },
-  message: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  avatarCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#6C63FF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  avatarText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  msgContent: { flex: 1 },
-  msgName: { fontWeight: "600", fontSize: 14, color: "#333" },
-  msgBody: { fontSize: 15, color: "#444", marginTop: 2 },
-  msgTime: { fontSize: 11, color: "#999", marginLeft: 8, marginTop: 2 },
-  inputRow: {
-    flexDirection: "row",
-    padding: 12,
     backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-    alignItems: "center",
+    borderBottomColor: "#eee",
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    paddingTop: 60,
   },
+  headerTitle: { fontSize: 18, fontWeight: "700" },
   input: {
-    flex: 1,
     backgroundColor: "#f0f0f0",
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    flex: 1,
     fontSize: 15,
-  },
-  sendBtn: {
-    marginLeft: 10,
-    backgroundColor: "#6C63FF",
     paddingHorizontal: 16,
     paddingVertical: 10,
+  },
+  inputRow: {
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderTopColor: "#eee",
+    borderTopWidth: 1,
+    flexDirection: "row",
+    padding: 12,
+  },
+  listContent: { padding: 16, paddingBottom: 8 },
+  message: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    marginBottom: 12,
+  },
+  msgBody: { color: "#444", fontSize: 15, marginTop: 2 },
+  msgContent: { flex: 1 },
+  msgName: { color: "#333", fontSize: 14, fontWeight: "600" },
+  msgTime: { color: "#999", fontSize: 11, marginLeft: 8, marginTop: 2 },
+  sendBtn: {
+    backgroundColor: "#6C63FF",
     borderRadius: 20,
+    marginLeft: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   sendText: { color: "#fff", fontWeight: "600" },
 })

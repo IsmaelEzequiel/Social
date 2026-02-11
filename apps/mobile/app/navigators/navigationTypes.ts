@@ -9,6 +9,7 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack"
 
 // Auth Stack (unauthenticated)
 export type AuthStackParamList = {
+  AuthMethod: undefined
   PhoneEntry: undefined
   CodeVerification: { phone: string; countryCode: string }
   ProfileSetup: undefined

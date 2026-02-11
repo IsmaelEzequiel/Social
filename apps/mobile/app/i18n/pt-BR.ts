@@ -11,6 +11,14 @@ const ptBR = {
     delete: "Excluir",
   },
   auth: {
+    authMethod: {
+      title: "Bem-vindo ao Impulse",
+      subtitle: "Escolha como entrar",
+      google: "Continuar com Google",
+      apple: "Continuar com Apple",
+      phone: "Continuar com telefone",
+      error: "Erro ao fazer login. Tente novamente.",
+    },
     phoneEntry: {
       title: "Entrar no Impulse",
       subtitle: "Digite seu número de celular",

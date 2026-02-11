@@ -1,8 +1,11 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import type { MainTabParamList } from "./navigationTypes"
+
+import { Icon } from "@/components/Icon"
 import { MapScreen } from "@/screens/map/MapScreen"
-import { UpcomingListScreen } from "@/screens/upcoming/UpcomingListScreen"
 import { ProfileScreen } from "@/screens/profile/ProfileScreen"
+import { UpcomingListScreen } from "@/screens/upcoming/UpcomingListScreen"
+
+import type { MainTabParamList } from "./navigationTypes"
 
 const Tab = createBottomTabNavigator<MainTabParamList>()
 
@@ -16,17 +19,17 @@ export const MainTabs = () => {
       <Tab.Screen
         name="MapTab"
         component={MapScreen}
-        options={{ title: "Mapa" }}
+        options={{ title: "Mapa", tabBarIcon: () => <Icon icon="components" /> }}
       />
       <Tab.Screen
         name="UpcomingTab"
         component={UpcomingListScreen}
-        options={{ title: "Próximos" }}
+        options={{ title: "Próximos", tabBarIcon: () => <Icon icon="bell" /> }}
       />
       <Tab.Screen
         name="ProfileTab"
         component={ProfileScreen}
-        options={{ title: "Perfil" }}
+        options={{ title: "Perfil", tabBarIcon: () => <Icon icon="clap" /> }}
       />
     </Tab.Navigator>
   )

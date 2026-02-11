@@ -2,10 +2,10 @@ import Config
 
 # Configure your database
 config :impulse, Impulse.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "impulse_dev",
+  username: System.get_env("DATABASE_USER") || "postgres",
+  password: System.get_env("DATABASE_PASSWORD") || "postgres",
+  hostname: System.get_env("DATABASE_HOST") || "localhost",
+  database: System.get_env("DATABASE_NAME") || "impulse_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10,
@@ -24,7 +24,7 @@ config :impulse, ImpulseWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "iRAq9jpZJdBQvuBeGIheb6FzOv1iJnwtAiqlykekJPQYANN99z0NKWm2zSxQYtY7",
+  secret_key_base: System.get_env("SECRET_KEY_BASE") || "iRAq9jpZJdBQvuBeGIheb6FzOv1iJnwtAiqlykekJPQYANN99z0NKWm2zSxQYtY7",
   watchers: []
 
 # ## SSL Support

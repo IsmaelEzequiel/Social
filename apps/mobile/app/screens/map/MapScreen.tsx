@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { View, TouchableOpacity, Text, StyleSheet, Modal } from "react-native"
+import type { Activity } from "@impulse/shared"
 import { useTranslation } from "react-i18next"
+
 import { api } from "@/services/api"
 import { socketService } from "@/services/socket/socket-service"
-import { CreateActivitySheet } from "./CreateActivitySheet"
+
 import { ActivityDetailModal } from "./ActivityDetailModal"
-import type { Activity } from "@impulse/shared"
+import { CreateActivitySheet } from "./CreateActivitySheet"
 
 // Note: react-native-maps will be integrated when running on device
 // For now, this is a list-based view that can be swapped for MapView
@@ -54,15 +56,18 @@ export const MapScreen = () => {
         setActivities((prev) => [payload, ...prev])
       })
 
-      channel.on("activity:joined", (payload: { activity_id: string; participant_count: number }) => {
-        setActivities((prev) =>
-          prev.map((a) =>
-            a.id === payload.activity_id
-              ? { ...a, participant_count: payload.participant_count }
-              : a,
-          ),
-        )
-      })
+      channel.on(
+        "activity:joined",
+        (payload: { activity_id: string; participant_count: number }) => {
+          setActivities((prev) =>
+            prev.map((a) =>
+              a.id === payload.activity_id
+                ? { ...a, participant_count: payload.participant_count }
+                : a,
+            ),
+          )
+        },
+      )
 
       channel.on("activity:left", (payload: { activity_id: string; participant_count: number }) => {
         setActivities((prev) =>
@@ -88,9 +93,7 @@ export const MapScreen = () => {
     <View style={styles.container}>
       {/* Activity list (placeholder for MapView) */}
       <View style={styles.list}>
-        {activities.length === 0 && (
-          <Text style={styles.empty}>{t("map:noActivities")}</Text>
-        )}
+        {activities.length === 0 && <Text style={styles.empty}>{t("map:noActivities")}</Text>}
         {activities.map((activity) => (
           <TouchableOpacity
             key={activity.id}
@@ -153,43 +156,43 @@ export const MapScreen = () => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
-  list: { flex: 1, padding: 16 },
-  empty: { textAlign: "center", marginTop: 100, fontSize: 16, color: "#999" },
+  activityIcon: { fontSize: 28, marginRight: 12 },
+  activityInfo: { flex: 1 },
   activityItem: {
-    flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    padding: 16,
     borderRadius: 12,
+    elevation: 2,
+    flexDirection: "row",
     marginBottom: 8,
+    padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 2,
   },
-  activityIcon: { fontSize: 28, marginRight: 12 },
-  activityInfo: { flex: 1 },
+  activityMeta: { color: "#666", fontSize: 13, marginTop: 2 },
+  activityMode: { color: "#6C63FF", fontSize: 12, fontWeight: "600", textTransform: "uppercase" },
   activityTitle: { fontSize: 16, fontWeight: "600" },
-  activityMeta: { fontSize: 13, color: "#666", marginTop: 2 },
-  activityMode: { fontSize: 12, color: "#6C63FF", fontWeight: "600", textTransform: "uppercase" },
+  container: { backgroundColor: "#f8f8f8", flex: 1 },
+  empty: { color: "#999", fontSize: 16, marginTop: 100, textAlign: "center" },
   fab: {
-    position: "absolute",
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#6C63FF",
-    justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#6C63FF",
+    borderRadius: 28,
+    bottom: 24,
+    elevation: 8,
+    height: 56,
+    justifyContent: "center",
+    position: "absolute",
+    right: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 8,
+    width: 56,
   },
   fabText: { color: "#fff", fontSize: 28, fontWeight: "300", marginTop: -2 },
-  modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.3)" },
+  list: { flex: 1, padding: 16 },
+  modalOverlay: { backgroundColor: "rgba(0,0,0,0.3)", flex: 1, justifyContent: "flex-end" },
 })

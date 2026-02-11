@@ -27,7 +27,12 @@ config :impulse, Oban,
 # Guardian JWT auth
 config :impulse, Impulse.Guardian,
   issuer: "impulse",
-  secret_key: "dev-secret-key-change-in-production"
+  secret_key: System.get_env("GUARDIAN_SECRET_KEY") || "dev-secret-key-change-in-production"
+
+# Auth0 social login
+config :impulse, :auth0,
+  domain: System.get_env("AUTH0_DOMAIN") || "your-tenant.auth0.com",
+  client_id: System.get_env("AUTH0_CLIENT_ID") || "your-client-id"
 
 # PostGIS types
 config :impulse, Impulse.Repo, types: Impulse.PostgresTypes

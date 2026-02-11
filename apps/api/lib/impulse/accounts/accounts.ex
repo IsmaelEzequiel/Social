@@ -36,6 +36,23 @@ defmodule Impulse.Accounts do
     |> Repo.update()
   end
 
+  def get_user_by_provider(auth_provider, auth_provider_id) do
+    Repo.get_by(User, auth_provider: auth_provider, auth_provider_id: auth_provider_id)
+  end
+
+  def register_or_login_social(attrs) do
+    case get_user_by_provider(attrs.auth_provider, attrs.auth_provider_id) do
+      nil -> create_social_user(attrs)
+      user -> {:ok, user}
+    end
+  end
+
+  def create_social_user(attrs) do
+    %User{}
+    |> User.social_registration_changeset(attrs)
+    |> Repo.insert()
+  end
+
   def increment_counter(user, field)
       when field in [:activities_joined_count, :activities_created_count] do
     from(u in User, where: u.id == ^user.id)

@@ -9,11 +9,13 @@ export interface AuthTokensResponse {
     preferred_presets: number[]
     zone_id: string | null
     subscription_tier: "free" | "pro"
+    auth_provider: "phone" | "google" | "apple"
     activities_joined_count: number
     activities_created_count: number
   }
   access_token: string
   refresh_token: string
+  message?: string
 }
 
 export const authService = {
