@@ -7,7 +7,7 @@ defmodule Impulse.Activities.Participation do
 
   schema "participations" do
     field :status, Ecto.Enum,
-      values: [:joined, :confirmed, :attended, :no_show, :cancelled],
+      values: [:pending, :joined, :confirmed, :attended, :no_show, :cancelled],
       default: :joined
 
     field :joined_at, :utc_datetime
@@ -56,7 +56,18 @@ defmodule Impulse.Activities.Participation do
     |> validate_length(:feedback_text, max: 200)
   end
 
+  def approve_changeset(participation) do
+    participation
+    |> change(status: :joined, joined_at: DateTime.utc_now())
+  end
+
+  def reject_changeset(participation) do
+    participation
+    |> change(status: :cancelled)
+  end
+
   @valid_transitions %{
+    pending: [:joined, :cancelled],
     joined: [:confirmed, :cancelled, :attended, :no_show],
     confirmed: [:cancelled, :attended, :no_show]
   }

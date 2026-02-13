@@ -1,4 +1,5 @@
 export type ParticipationStatus =
+  | "pending"
   | "joined"
   | "confirmed"
   | "attended"

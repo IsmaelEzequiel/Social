@@ -119,6 +119,72 @@ const ar: Translations = {
     },
   },
 
+  map: {
+    title: "Map",
+    createActivity: "Create activity",
+    noActivities: "No activities nearby",
+    join: "Join",
+    leave: "Leave",
+    full: "Full",
+    participants: "{{count}} participants",
+    startsIn: "Starts in {{time}}",
+    endsIn: "Ends in {{time}}",
+    radiusFilter: {
+      label: "Radius",
+      km1: "1 km",
+      km5: "5 km",
+      km10: "10 km",
+      km25: "25 km",
+    },
+  },
+  activity: {
+    flash: "Flash",
+    planned: "Planned",
+    requestToJoin: "Request to Join",
+    pendingApproval: "Pending Approval",
+    create: {
+      title: "New activity",
+      choosePreset: "Choose type",
+      chooseLocation: "Where?",
+      chooseTime: "When?",
+      chooseParticipants: "How many?",
+      duration: "Duration",
+      minutes: "{{count}} min",
+      create: "Create activity",
+    },
+    detail: {
+      creator: "Created by {{name}}",
+      spotsLeft: "{{count}} spots left",
+      confirmed: "{{count}} confirmed",
+    },
+    chat: {
+      placeholder: "Message...",
+      ephemeralNotice: "Messages are deleted after the activity",
+    },
+    feedback: {
+      title: "How was it?",
+      submit: "Submit",
+    },
+  },
+  eventRoom: {
+    tabs: {
+      chat: "Chat",
+      participants: "Participants",
+    },
+    report: {
+      button: "Report",
+      title: "Report Activity",
+    },
+    participants: {
+      pending: "Pending Requests",
+      approve: "Approve",
+      reject: "Reject",
+      empty: "No participants yet",
+      pendingEmpty: "No pending requests",
+    },
+    pendingApproval: "Waiting for owner approval...",
+  },
+
   ...demoAr,
 }
 

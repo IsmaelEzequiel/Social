@@ -44,6 +44,10 @@ defmodule ImpulseWeb.Router do
     delete "/activities/:id/leave", ActivityController, :leave
     post "/activities/:id/confirm", ActivityController, :confirm
     post "/activities/:id/feedback", ActivityController, :feedback
+    get "/activities/:id/participants", ActivityController, :participants
+    get "/activities/:id/participants/pending", ActivityController, :pending_participants
+    post "/activities/:id/participants/:user_id/approve", ActivityController, :approve_participant
+    post "/activities/:id/participants/:user_id/reject", ActivityController, :reject_participant
 
     # Reports
     post "/reports", ReportController, :create

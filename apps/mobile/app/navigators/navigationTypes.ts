@@ -28,6 +28,7 @@ export type AppStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>
   ActivityDetail: { activityId: string }
   LiveActivity: { activityId: string }
+  EventRoom: { activityId: string }
   Chat: { activityId: string }
   Badges: undefined
   Trophies: undefined
@@ -50,5 +51,6 @@ export type MainTabScreenProps<T extends keyof MainTabParamList> = CompositeScre
   AppStackScreenProps<keyof AppStackParamList>
 >
 
-export interface NavigationProps
-  extends Partial<ComponentProps<typeof NavigationContainer<AppStackParamList>>> {}
+export interface NavigationProps extends Partial<
+  ComponentProps<typeof NavigationContainer<AppStackParamList>>
+> {}

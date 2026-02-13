@@ -1,54 +1,92 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { View, TouchableOpacity, Text, StyleSheet, Modal } from "react-native"
+import * as Location from "expo-location"
 import type { Activity } from "@impulse/shared"
+import { useNavigation } from "@react-navigation/native"
+import { NativeStackNavigationProp } from "@react-navigation/native-stack"
+import MapboxGL from "@rnmapbox/maps"
 import { useTranslation } from "react-i18next"
 
+import { ActivityPin } from "@/components/ActivityPin"
+import type { AppStackParamList } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
 import { socketService } from "@/services/socket/socket-service"
 
 import { ActivityDetailModal } from "./ActivityDetailModal"
 import { CreateActivitySheet } from "./CreateActivitySheet"
 
-// Note: react-native-maps will be integrated when running on device
-// For now, this is a list-based view that can be swapped for MapView
+type Nav = NativeStackNavigationProp<AppStackParamList>
 
 interface MapActivity extends Activity {
   participant_count?: number
+  my_participation_status?: string | null
   preset?: { name: string; icon: string }
   creator?: { display_name: string; avatar_preset: number }
 }
 
+const RADIUS_OPTIONS = [
+  { label: "1 km", meters: 1000 },
+  { label: "5 km", meters: 5000 },
+  { label: "10 km", meters: 10000 },
+  { label: "25 km", meters: 25000 },
+]
+
 export const MapScreen = () => {
   const { t } = useTranslation()
+  const navigation = useNavigation<Nav>()
   const [activities, setActivities] = useState<MapActivity[]>([])
   const [showCreate, setShowCreate] = useState(false)
   const [selectedActivity, setSelectedActivity] = useState<MapActivity | null>(null)
+  const [radiusIndex, setRadiusIndex] = useState(1) // default 5km
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(
+    null,
+  )
   const channelRef = useRef<ReturnType<typeof socketService.joinChannel>>(null)
+  const cameraRef = useRef<MapboxGL.Camera>(null)
 
-  // Default to São Paulo center
-  const [region] = useState({
-    latitude: -23.5505,
-    longitude: -46.6333,
-    latDelta: 0.05,
-    lngDelta: 0.05,
-  })
-
-  const loadActivities = useCallback(async () => {
-    const res = await api.get<{ data: MapActivity[] }>("/activities", {
-      lat: region.latitude,
-      lng: region.longitude,
-      radius: 5000,
-    })
-    if (res.ok && res.data) {
-      setActivities(res.data.data)
-    }
-  }, [region])
-
+  // Request location on mount
   useEffect(() => {
-    loadActivities()
+    ;(async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync()
+      if (status === "granted") {
+        const loc = await Location.getCurrentPositionAsync({})
+        setUserLocation({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        })
+      } else {
+        // Fallback to São Paulo
+        setUserLocation({ latitude: -23.5505, longitude: -46.6333 })
+      }
+    })()
+  }, [])
 
+  const radiusMeters = RADIUS_OPTIONS[radiusIndex].meters
+
+  const loadActivities = useCallback(
+    async (lat: number, lng: number) => {
+      const res = await api.get<{ data: MapActivity[] }>("/activities", {
+        lat,
+        lng,
+        radius: radiusMeters,
+      })
+      if (res.ok && res.data) {
+        setActivities(res.data.data)
+      }
+    },
+    [radiusMeters],
+  )
+
+  // Load activities when location or radius changes
+  useEffect(() => {
+    if (!userLocation) return
+    loadActivities(userLocation.latitude, userLocation.longitude)
+  }, [userLocation, loadActivities])
+
+  // Real-time channel
+  useEffect(() => {
     socketService.connect()
-    const channel = socketService.joinChannel("map:sao_paulo")
+    const channel = socketService.joinChannel("map:activity_updates")
     channelRef.current = channel
 
     if (channel) {
@@ -85,29 +123,83 @@ export const MapScreen = () => {
     }
 
     return () => {
-      socketService.leaveChannel("map:sao_paulo")
+      socketService.leaveChannel("map:activity_updates")
     }
-  }, [loadActivities])
+  }, [])
+
+  const handleMarkerPress = (activity: MapActivity) => {
+    const status = activity.my_participation_status
+    if (status === "joined" || status === "confirmed" || status === "attended") {
+      navigation.navigate("EventRoom", { activityId: activity.id })
+    } else {
+      setSelectedActivity(activity)
+    }
+  }
+
+  const handleRegionChange = useCallback(
+    (feature: GeoJSON.Feature) => {
+      if (!feature.properties) return
+      const center = (feature.geometry as GeoJSON.Point).coordinates
+      if (center) {
+        loadActivities(center[1], center[0])
+      }
+    },
+    [loadActivities],
+  )
+
+  if (!userLocation) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>{t("common:loading")}</Text>
+      </View>
+    )
+  }
 
   return (
     <View style={styles.container}>
-      {/* Activity list (placeholder for MapView) */}
-      <View style={styles.list}>
-        {activities.length === 0 && <Text style={styles.empty}>{t("map:noActivities")}</Text>}
+      <MapboxGL.MapView
+        style={styles.map}
+        styleURL={MapboxGL.StyleURL.Street}
+        onRegionDidChange={handleRegionChange}
+      >
+        <MapboxGL.Camera
+          ref={cameraRef}
+          centerCoordinate={[userLocation.longitude, userLocation.latitude]}
+          zoomLevel={13}
+          animationMode="flyTo"
+          animationDuration={1000}
+        />
+        <MapboxGL.UserLocation visible />
+
         {activities.map((activity) => (
-          <TouchableOpacity
+          <MapboxGL.MarkerView
             key={activity.id}
-            style={styles.activityItem}
-            onPress={() => setSelectedActivity(activity)}
+            coordinate={[activity.location.longitude, activity.location.latitude]}
           >
-            <Text style={styles.activityIcon}>{activity.preset?.icon || "?"}</Text>
-            <View style={styles.activityInfo}>
-              <Text style={styles.activityTitle}>{activity.title}</Text>
-              <Text style={styles.activityMeta}>
-                {activity.participant_count || 0}/{activity.max_participants} participants
-              </Text>
-            </View>
-            <Text style={styles.activityMode}>{activity.mode}</Text>
+            <TouchableOpacity onPress={() => handleMarkerPress(activity)}>
+              <ActivityPin
+                presetIcon={activity.preset?.icon || "?"}
+                presetName={activity.preset?.name || ""}
+                participantCount={activity.participant_count || 0}
+                maxParticipants={activity.max_participants}
+                status={activity.status}
+              />
+            </TouchableOpacity>
+          </MapboxGL.MarkerView>
+        ))}
+      </MapboxGL.MapView>
+
+      {/* Radius Filter */}
+      <View style={styles.radiusBar}>
+        {RADIUS_OPTIONS.map((opt, i) => (
+          <TouchableOpacity
+            key={opt.meters}
+            style={[styles.radiusPill, i === radiusIndex && styles.radiusPillActive]}
+            onPress={() => setRadiusIndex(i)}
+          >
+            <Text style={[styles.radiusText, i === radiusIndex && styles.radiusTextActive]}>
+              {opt.label}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -121,11 +213,11 @@ export const MapScreen = () => {
       <Modal visible={showCreate} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <CreateActivitySheet
-            latitude={region.latitude}
-            longitude={region.longitude}
+            latitude={userLocation.latitude}
+            longitude={userLocation.longitude}
             onCreated={() => {
               setShowCreate(false)
-              loadActivities()
+              loadActivities(userLocation.latitude, userLocation.longitude)
             }}
             onClose={() => setShowCreate(false)}
           />
@@ -140,11 +232,11 @@ export const MapScreen = () => {
               activity={selectedActivity}
               onJoined={() => {
                 setSelectedActivity(null)
-                loadActivities()
+                loadActivities(userLocation.latitude, userLocation.longitude)
               }}
               onLeft={() => {
                 setSelectedActivity(null)
-                loadActivities()
+                loadActivities(userLocation.latitude, userLocation.longitude)
               }}
               onClose={() => setSelectedActivity(null)}
             />
@@ -156,26 +248,7 @@ export const MapScreen = () => {
 }
 
 const styles = StyleSheet.create({
-  activityIcon: { fontSize: 28, marginRight: 12 },
-  activityInfo: { flex: 1 },
-  activityItem: {
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    elevation: 2,
-    flexDirection: "row",
-    marginBottom: 8,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  activityMeta: { color: "#666", fontSize: 13, marginTop: 2 },
-  activityMode: { color: "#6C63FF", fontSize: 12, fontWeight: "600", textTransform: "uppercase" },
-  activityTitle: { fontSize: 16, fontWeight: "600" },
-  container: { backgroundColor: "#f8f8f8", flex: 1 },
-  empty: { color: "#999", fontSize: 16, marginTop: 100, textAlign: "center" },
+  container: { flex: 1 },
   fab: {
     alignItems: "center",
     backgroundColor: "#6C63FF",
@@ -193,6 +266,39 @@ const styles = StyleSheet.create({
     width: 56,
   },
   fabText: { color: "#fff", fontSize: 28, fontWeight: "300", marginTop: -2 },
-  list: { flex: 1, padding: 16 },
+  loadingContainer: { alignItems: "center", flex: 1, justifyContent: "center" },
+  loadingText: { color: "#999", fontSize: 16 },
+  map: { flex: 1 },
   modalOverlay: { backgroundColor: "rgba(0,0,0,0.3)", flex: 1, justifyContent: "flex-end" },
+  radiusBar: {
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+    left: 16,
+    position: "absolute",
+    right: 16,
+    top: 60,
+  },
+  radiusPill: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    elevation: 3,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  radiusPillActive: {
+    backgroundColor: "#6C63FF",
+  },
+  radiusText: {
+    color: "#333",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  radiusTextActive: {
+    color: "#fff",
+  },
 })

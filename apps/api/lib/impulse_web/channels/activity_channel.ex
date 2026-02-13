@@ -2,6 +2,7 @@ defmodule ImpulseWeb.ActivityChannel do
   use Phoenix.Channel
 
   alias Impulse.Chat
+  alias Impulse.Activities
 
   @impl true
   def join("activity:" <> activity_id, _payload, socket) do
@@ -52,5 +53,60 @@ defmodule ImpulseWeb.ActivityChannel do
       end)
 
     {:reply, {:ok, %{messages: message_data}}, socket}
+  end
+
+  def handle_in("participants:list", _payload, socket) do
+    activity_id = socket.assigns.activity_id
+    participants = Activities.list_participants(activity_id)
+
+    data =
+      Enum.map(participants, fn p ->
+        %{
+          id: p.id,
+          user_id: p.user_id,
+          status: p.status,
+          joined_at: p.joined_at,
+          display_name: p.user.display_name,
+          avatar_preset: p.user.avatar_preset
+        }
+      end)
+
+    {:reply, {:ok, %{participants: data}}, socket}
+  end
+
+  def handle_in("participant:approve", %{"user_id" => user_id}, socket) do
+    owner = socket.assigns.current_user
+    activity_id = socket.assigns.activity_id
+
+    case Activities.approve_participant(owner, activity_id, user_id) do
+      {:ok, participation} ->
+        user = Impulse.Accounts.get_user(user_id)
+
+        broadcast!(socket, "participant:joined", %{
+          user_id: user_id,
+          display_name: user && user.display_name,
+          avatar_preset: user && user.avatar_preset,
+          participation_id: participation.id
+        })
+
+        {:reply, {:ok, %{message: "approved"}}, socket}
+
+      {:error, reason} ->
+        {:reply, {:error, %{reason: to_string(reason)}}, socket}
+    end
+  end
+
+  def handle_in("participant:reject", %{"user_id" => user_id}, socket) do
+    owner = socket.assigns.current_user
+    activity_id = socket.assigns.activity_id
+
+    case Activities.reject_participant(owner, activity_id, user_id) do
+      {:ok, _participation} ->
+        broadcast!(socket, "participant:rejected", %{user_id: user_id})
+        {:reply, {:ok, %{message: "rejected"}}, socket}
+
+      {:error, reason} ->
+        {:reply, {:error, %{reason: to_string(reason)}}, socket}
+    end
   end
 end

@@ -1,18 +1,21 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from "react-native"
-import { useTranslation } from "react-i18next"
+import type { Activity } from "@impulse/shared"
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native"
 import { NativeStackNavigationProp } from "@react-navigation/native-stack"
-import { api } from "@/services/api"
+import type { Channel } from "phoenix"
+import { useTranslation } from "react-i18next"
+
 import type { AppStackParamList } from "@/navigators/navigationTypes"
-import type { Activity } from "@impulse/shared"
+import { api } from "@/services/api"
+import { socketService } from "@/services/socket/socket-service"
 
 type Nav = NativeStackNavigationProp<AppStackParamList>
 type Route = RouteProp<AppStackParamList, "ActivityDetail">
 
 interface ActivityDetail extends Activity {
   participant_count?: number
-  my_status?: string | null
+  my_participation_status?: string | null
   preset?: { name: string; icon: string }
   creator?: { display_name: string; avatar_preset: number }
 }
@@ -23,6 +26,7 @@ export const ActivityDetailScreen = () => {
   const route = useRoute<Route>()
   const { activityId } = route.params
   const [activity, setActivity] = useState<ActivityDetail | null>(null)
+  const channelRef = useRef<Channel | null>(null)
 
   const loadActivity = useCallback(async () => {
     const res = await api.get<{ data: ActivityDetail }>(`/activities/${activityId}`)
@@ -35,10 +39,43 @@ export const ActivityDetailScreen = () => {
     loadActivity()
   }, [loadActivity])
 
+  // Listen for approval when pending
+  useEffect(() => {
+    if (activity?.my_participation_status !== "pending") return
+
+    socketService.connect()
+    const channel = socketService.joinChannel(`activity:${activityId}`)
+    channelRef.current = channel
+
+    if (channel) {
+      channel.on("participant:joined", (payload: { user_id: string }) => {
+        // If this user got approved, navigate to EventRoom
+        // We reload the activity to check status
+        loadActivity().then(() => {
+          // Will re-render and the status check below will handle navigation
+        })
+      })
+    }
+
+    return () => {
+      socketService.leaveChannel(`activity:${activityId}`)
+    }
+  }, [activity?.my_participation_status, activityId, loadActivity])
+
+  // Auto-navigate to EventRoom when status changes to joined (from pending)
+  useEffect(() => {
+    if (activity?.my_participation_status === "joined" && activity.requires_approval) {
+      navigation.replace("EventRoom", { activityId })
+    }
+  }, [activity?.my_participation_status, activity?.requires_approval, activityId, navigation])
+
   const handleJoin = async () => {
-    const res = await api.post(`/activities/${activityId}/join`)
-    if (res.ok) loadActivity()
-    else Alert.alert("Erro", "Falha ao participar")
+    const res = await api.post<{ status: string }>(`/activities/${activityId}/join`)
+    if (res.ok) {
+      loadActivity()
+    } else {
+      Alert.alert("Erro", "Falha ao participar")
+    }
   }
 
   const handleLeave = async () => {
@@ -49,8 +86,11 @@ export const ActivityDetailScreen = () => {
 
   const handleConfirm = async () => {
     const res = await api.post(`/activities/${activityId}/confirm`)
-    if (res.ok) loadActivity()
-    else Alert.alert("Erro", "Falha ao confirmar")
+    if (res.ok) {
+      navigation.replace("EventRoom", { activityId })
+    } else {
+      Alert.alert("Erro", "Falha ao confirmar")
+    }
   }
 
   if (!activity) {
@@ -61,9 +101,11 @@ export const ActivityDetailScreen = () => {
     )
   }
 
+  const myStatus = activity.my_participation_status
   const spotsLeft = activity.max_participants - (activity.participant_count || 0)
   const isFull = spotsLeft <= 0
-  const isParticipant = !!activity.my_status && activity.my_status !== "cancelled"
+  const isParticipant = !!myStatus && myStatus !== "cancelled" && myStatus !== "pending"
+  const isPending = myStatus === "pending"
 
   return (
     <ScrollView style={styles.container}>
@@ -85,30 +127,38 @@ export const ActivityDetailScreen = () => {
             {t("activity:detail.creator", { name: activity.creator.display_name })}
           </Text>
         )}
-        <Text style={styles.detail}>
-          {t("activity:detail.spotsLeft", { count: spotsLeft })}
-        </Text>
+        <Text style={styles.detail}>{t("activity:detail.spotsLeft", { count: spotsLeft })}</Text>
         <Text style={styles.detail}>
           {t("activity:detail.confirmed", { count: activity.participant_count || 0 })}
         </Text>
       </View>
 
-      {activity.description && <Text style={styles.description}>{activity.description}</Text>}
-
       <View style={styles.actions}>
-        {!isParticipant && !isFull && (
+        {/* Not a participant, not pending, not full */}
+        {!isParticipant && !isPending && !isFull && (
           <TouchableOpacity style={styles.primaryBtn} onPress={handleJoin}>
-            <Text style={styles.primaryText}>{t("map:join")}</Text>
+            <Text style={styles.primaryText}>
+              {activity.requires_approval ? t("activity:requestToJoin") : t("map:join")}
+            </Text>
           </TouchableOpacity>
         )}
 
-        {!isParticipant && isFull && (
+        {/* Not a participant, full */}
+        {!isParticipant && !isPending && isFull && (
           <View style={styles.disabledBtn}>
             <Text style={styles.disabledText}>{t("map:full")}</Text>
           </View>
         )}
 
-        {activity.my_status === "joined" && (
+        {/* Pending approval */}
+        {isPending && (
+          <View style={styles.pendingBadge}>
+            <Text style={styles.pendingText}>{t("activity:pendingApproval")}</Text>
+          </View>
+        )}
+
+        {/* Joined — can confirm */}
+        {myStatus === "joined" && (
           <>
             <TouchableOpacity style={styles.primaryBtn} onPress={handleConfirm}>
               <Text style={styles.primaryText}>{t("upcoming:confirm")}</Text>
@@ -119,11 +169,12 @@ export const ActivityDetailScreen = () => {
           </>
         )}
 
-        {activity.my_status === "confirmed" && (
+        {/* Confirmed — enter event room */}
+        {myStatus === "confirmed" && (
           <>
             <TouchableOpacity
               style={styles.primaryBtn}
-              onPress={() => navigation.navigate("LiveActivity", { activityId })}
+              onPress={() => navigation.navigate("EventRoom", { activityId })}
             >
               <Text style={styles.primaryText}>Entrar ao vivo</Text>
             </TouchableOpacity>
@@ -133,12 +184,13 @@ export const ActivityDetailScreen = () => {
           </>
         )}
 
+        {/* Participant — can go to event room */}
         {isParticipant && (
           <TouchableOpacity
             style={styles.chatBtn}
-            onPress={() => navigation.navigate("Chat", { activityId })}
+            onPress={() => navigation.navigate("EventRoom", { activityId })}
           >
-            <Text style={styles.chatText}>Chat</Text>
+            <Text style={styles.chatText}>{t("eventRoom:tabs.chat")}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -147,46 +199,58 @@ export const ActivityDetailScreen = () => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
-  loading: { flex: 1, justifyContent: "center", alignItems: "center" },
+  actions: { gap: 12, padding: 24 },
   backBtn: { padding: 16, paddingTop: 60 },
   backText: { color: "#6C63FF", fontSize: 16 },
+  chatBtn: {
+    alignItems: "center",
+    backgroundColor: "#333",
+    borderRadius: 12,
+    padding: 16,
+  },
+  chatText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  container: { backgroundColor: "#f8f8f8", flex: 1 },
+  detail: { color: "#444", fontSize: 15 },
+  disabledBtn: {
+    alignItems: "center",
+    backgroundColor: "#ccc",
+    borderRadius: 12,
+    padding: 16,
+  },
+  disabledText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   header: { alignItems: "center", padding: 24 },
   icon: { fontSize: 48 },
-  title: { fontSize: 24, fontWeight: "700", marginTop: 8, textAlign: "center" },
-  mode: { fontSize: 14, color: "#6C63FF", fontWeight: "600", marginTop: 4, textTransform: "uppercase" },
-  info: { paddingHorizontal: 24, gap: 4 },
-  detail: { fontSize: 15, color: "#444" },
-  description: { fontSize: 15, color: "#666", paddingHorizontal: 24, marginTop: 16, lineHeight: 22 },
-  actions: { padding: 24, gap: 12 },
+  info: { gap: 4, paddingHorizontal: 24 },
+  loading: { alignItems: "center", flex: 1, justifyContent: "center" },
+  mode: {
+    color: "#6C63FF",
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: 4,
+    textTransform: "uppercase",
+  },
+  pendingBadge: {
+    alignItems: "center",
+    backgroundColor: "#FFF3CD",
+    borderRadius: 12,
+    padding: 16,
+  },
+  pendingText: { color: "#856404", fontSize: 15, fontWeight: "600" },
   primaryBtn: {
+    alignItems: "center",
     backgroundColor: "#6C63FF",
-    padding: 16,
     borderRadius: 12,
-    alignItems: "center",
+    padding: 16,
   },
-  primaryText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  primaryText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   secondaryBtn: {
+    alignItems: "center",
     backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
     borderColor: "#ddd",
-  },
-  secondaryText: { color: "#666", fontWeight: "600", fontSize: 16 },
-  disabledBtn: {
-    backgroundColor: "#ccc",
-    padding: 16,
     borderRadius: 12,
-    alignItems: "center",
-  },
-  disabledText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  chatBtn: {
-    backgroundColor: "#333",
+    borderWidth: 1,
     padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
   },
-  chatText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+  secondaryText: { color: "#666", fontSize: 16, fontWeight: "600" },
+  title: { fontSize: 24, fontWeight: "700", marginTop: 8, textAlign: "center" },
 })

@@ -3,20 +3,21 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
 import Config from "@/config"
 import { useAuth } from "@/context/AuthContext"
+import { ActivityDetailScreen } from "@/screens/activity/ActivityDetailScreen"
+import { ChatScreen } from "@/screens/activity/ChatScreen"
+import { EventRoomScreen } from "@/screens/activity/EventRoomScreen"
+import { LiveActivityScreen } from "@/screens/activity/LiveActivityScreen"
 import { ErrorBoundary } from "@/screens/ErrorScreen/ErrorBoundary"
+import { BadgesScreen } from "@/screens/profile/BadgesScreen"
+import { SettingsScreen } from "@/screens/profile/SettingsScreen"
+import { SubscriptionScreen } from "@/screens/profile/SubscriptionScreen"
+import { TrophiesScreen } from "@/screens/profile/TrophiesScreen"
 import { useAppTheme } from "@/theme/context"
 
 import { AuthStack } from "./AuthStack"
 import { MainTabs } from "./MainTabs"
-import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 import type { AppStackParamList, NavigationProps } from "./navigationTypes"
-import { ActivityDetailScreen } from "@/screens/activity/ActivityDetailScreen"
-import { LiveActivityScreen } from "@/screens/activity/LiveActivityScreen"
-import { ChatScreen } from "@/screens/activity/ChatScreen"
-import { BadgesScreen } from "@/screens/profile/BadgesScreen"
-import { TrophiesScreen } from "@/screens/profile/TrophiesScreen"
-import { SubscriptionScreen } from "@/screens/profile/SubscriptionScreen"
-import { SettingsScreen } from "@/screens/profile/SettingsScreen"
+import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 
 const exitRoutes = Config.exitRoutes
 
@@ -45,6 +46,7 @@ const AppStack = () => {
           <Stack.Screen name="Main" component={MainTabs} />
           <Stack.Screen name="ActivityDetail" component={ActivityDetailScreen} />
           <Stack.Screen name="LiveActivity" component={LiveActivityScreen} />
+          <Stack.Screen name="EventRoom" component={EventRoomScreen} />
           <Stack.Screen name="Chat" component={ChatScreen} />
           <Stack.Screen name="Badges" component={BadgesScreen} />
           <Stack.Screen name="Trophies" component={TrophiesScreen} />

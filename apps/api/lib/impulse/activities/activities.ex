@@ -98,16 +98,22 @@ defmodule Impulse.Activities do
         {:error, :not_joinable}
 
       true ->
+        initial_status = if activity.requires_approval, do: :pending, else: :joined
+
         attrs = %{
           user_id: user.id,
           activity_id: activity_id,
+          status: initial_status,
           joined_at: DateTime.utc_now()
         }
 
         case %Participation{} |> Participation.changeset(attrs) |> Repo.insert() do
           {:ok, participation} ->
-            Accounts.increment_counter(user, :activities_joined_count)
-            maybe_mark_full(activity)
+            unless initial_status == :pending do
+              Accounts.increment_counter(user, :activities_joined_count)
+              maybe_mark_full(activity)
+            end
+
             {:ok, participation}
 
           {:error, changeset} ->
@@ -156,6 +162,80 @@ defmodule Impulse.Activities do
     end
   end
 
+  # --- Approval Workflow ---
+
+  def approve_participant(owner, activity_id, user_id) do
+    with {:ok, activity} <- get_owned_activity(owner, activity_id),
+         participation when not is_nil(participation) <-
+           Repo.get_by(Participation,
+             user_id: user_id,
+             activity_id: activity_id,
+             status: :pending
+           ) do
+      participation
+      |> Participation.approve_changeset()
+      |> Repo.update()
+      |> case do
+        {:ok, p} ->
+          user = Accounts.get_user(user_id)
+          if user, do: Accounts.increment_counter(user, :activities_joined_count)
+          maybe_mark_full(activity)
+          {:ok, p}
+
+        error ->
+          error
+      end
+    else
+      nil -> {:error, :not_found}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def reject_participant(owner, activity_id, user_id) do
+    with {:ok, _activity} <- get_owned_activity(owner, activity_id),
+         participation when not is_nil(participation) <-
+           Repo.get_by(Participation,
+             user_id: user_id,
+             activity_id: activity_id,
+             status: :pending
+           ) do
+      participation
+      |> Participation.reject_changeset()
+      |> Repo.update()
+    else
+      nil -> {:error, :not_found}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # --- Participant Listing ---
+
+  def list_participants(activity_id) do
+    from(p in Participation,
+      where: p.activity_id == ^activity_id,
+      where: p.status in [:joined, :confirmed, :attended],
+      preload: [:user],
+      order_by: [asc: p.joined_at]
+    )
+    |> Repo.all()
+  end
+
+  def list_pending_participants(activity_id) do
+    from(p in Participation,
+      where: p.activity_id == ^activity_id,
+      where: p.status == :pending,
+      preload: [:user],
+      order_by: [asc: p.joined_at]
+    )
+    |> Repo.all()
+  end
+
+  def get_participation(user_id, activity_id) do
+    Repo.get_by(Participation, user_id: user_id, activity_id: activity_id)
+  end
+
+  # --- Feedback ---
+
   def submit_feedback(user, activity_id, score, text \\ nil) do
     case Repo.get_by(Participation, user_id: user.id, activity_id: activity_id) do
       nil ->
@@ -169,6 +249,14 @@ defmodule Impulse.Activities do
   end
 
   # --- Helpers ---
+
+  defp get_owned_activity(owner, activity_id) do
+    case get_activity(activity_id) do
+      nil -> {:error, :not_found}
+      %{creator_id: creator_id} = activity when creator_id == owner.id -> {:ok, activity}
+      _activity -> {:error, :not_owner}
+    end
+  end
 
   defp build_point(lat, lng) when is_number(lat) and is_number(lng) do
     %Geo.Point{coordinates: {lng, lat}, srid: 4326}

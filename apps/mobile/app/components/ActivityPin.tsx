@@ -43,10 +43,7 @@ export const ActivityPin = ({
     if (status === "active") {
       // Breathing pulse for active activities
       pulseOpacity.value = withRepeat(
-        withSequence(
-          withTiming(0.4, { duration: 1000 }),
-          withTiming(0, { duration: 1000 }),
-        ),
+        withSequence(withTiming(0.4, { duration: 1000 }), withTiming(0, { duration: 1000 })),
         -1,
         false,
       )
@@ -63,9 +60,7 @@ export const ActivityPin = ({
 
   return (
     <View style={styles.wrapper}>
-      {status === "active" && (
-        <Animated.View style={[styles.pulse, pulseStyle]} />
-      )}
+      {status === "active" && <Animated.View style={[styles.pulse, pulseStyle]} />}
       <Animated.View style={[styles.container, isFull && styles.fullContainer, pinStyle]}>
         <Text style={styles.icon}>{presetIcon}</Text>
         <Text style={styles.count}>
@@ -77,32 +72,32 @@ export const ActivityPin = ({
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pulse: {
-    position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#6C63FF",
-  },
   container: {
+    alignItems: "center",
     backgroundColor: "#6C63FF",
     borderRadius: 20,
+    elevation: 4,
+    flexDirection: "row",
+    gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 4,
   },
+  count: { color: "#fff", fontSize: 12, fontWeight: "bold" },
   fullContainer: { backgroundColor: "#FF6B6B" },
   icon: { fontSize: 16 },
-  count: { color: "#fff", fontSize: 12, fontWeight: "bold" },
+  pulse: {
+    backgroundColor: "#6C63FF",
+    borderRadius: 30,
+    height: 60,
+    position: "absolute",
+    width: 60,
+  },
+  wrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
 })

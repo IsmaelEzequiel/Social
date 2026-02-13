@@ -51,10 +51,19 @@ const ptBR = {
     participants: "{{count}} participantes",
     startsIn: "Começa em {{time}}",
     endsIn: "Termina em {{time}}",
+    radiusFilter: {
+      label: "Raio",
+      km1: "1 km",
+      km5: "5 km",
+      km10: "10 km",
+      km25: "25 km",
+    },
   },
   activity: {
     flash: "Flash",
     planned: "Planejada",
+    requestToJoin: "Solicitar participação",
+    pendingApproval: "Aguardando aprovação",
     create: {
       title: "Nova atividade",
       choosePreset: "Escolha o tipo",
@@ -78,6 +87,24 @@ const ptBR = {
       title: "Como foi?",
       submit: "Enviar",
     },
+  },
+  eventRoom: {
+    tabs: {
+      chat: "Chat",
+      participants: "Participantes",
+    },
+    report: {
+      button: "Denunciar",
+      title: "Denunciar atividade",
+    },
+    participants: {
+      pending: "Solicitações pendentes",
+      approve: "Aprovar",
+      reject: "Recusar",
+      empty: "Nenhum participante ainda",
+      pendingEmpty: "Nenhuma solicitação pendente",
+    },
+    pendingApproval: "Aguardando aprovação do organizador...",
   },
   upcoming: {
     title: "Próximos",

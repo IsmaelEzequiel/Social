@@ -19,5 +19,6 @@ export interface Activity {
   status: ActivityStatus
   confirmed_count: number
   participant_count?: number
+  requires_approval: boolean
   inserted_at: string
 }

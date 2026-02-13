@@ -22,6 +22,7 @@ defmodule Impulse.Activities.Activity do
     field :visibility_score, :float
     field :confirmed_count, :integer, default: 0
     field :recurring_rule, :map
+    field :requires_approval, :boolean, default: false
 
     belongs_to :creator, Impulse.Accounts.User
     belongs_to :preset, Impulse.Gamification.Preset
@@ -39,7 +40,14 @@ defmodule Impulse.Activities.Activity do
     :preset_id,
     :visibility_score
   ]
-  @optional_fields [:location_name, :min_participants, :status, :confirmed_count, :recurring_rule]
+  @optional_fields [
+    :location_name,
+    :min_participants,
+    :status,
+    :confirmed_count,
+    :recurring_rule,
+    :requires_approval
+  ]
 
   def changeset(activity, attrs) do
     activity

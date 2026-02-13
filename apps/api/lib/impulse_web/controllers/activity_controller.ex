@@ -39,8 +39,16 @@ defmodule ImpulseWeb.ActivityController do
         conn |> put_status(:not_found) |> json(%{error: "not_found"})
 
       activity ->
+        user = conn.assigns.current_user
         participant_count = Activities.active_participant_count(id)
-        render(conn, :show, activity: activity, participant_count: participant_count)
+        participation = Activities.get_participation(user.id, id)
+        my_status = if participation, do: participation.status, else: nil
+
+        render(conn, :show,
+          activity: activity,
+          participant_count: participant_count,
+          my_participation_status: my_status
+        )
     end
   end
 
@@ -72,13 +80,21 @@ defmodule ImpulseWeb.ActivityController do
 
     case Activities.join_activity(user, activity_id) do
       {:ok, participation} ->
-        Phoenix.PubSub.broadcast(
-          Impulse.PubSub,
-          "map:activity_updates",
-          {:activity_joined, activity_id, user.id}
-        )
+        if participation.status == :joined do
+          Phoenix.PubSub.broadcast(
+            Impulse.PubSub,
+            "map:activity_updates",
+            {:activity_joined, activity_id, user.id}
+          )
+        end
 
-        conn |> put_status(:ok) |> json(%{message: "joined", participation_id: participation.id})
+        conn
+        |> put_status(:ok)
+        |> json(%{
+          message: to_string(participation.status),
+          participation_id: participation.id,
+          status: participation.status
+        })
 
       {:error, :not_found} ->
         conn |> put_status(:not_found) |> json(%{error: "not_found"})
@@ -136,6 +152,83 @@ defmodule ImpulseWeb.ActivityController do
         |> put_status(:unprocessable_entity)
         |> put_view(ImpulseWeb.ErrorJSON)
         |> render("422.json", changeset: changeset)
+    end
+  end
+
+  def participants(conn, %{"id" => activity_id}) do
+    participants = Activities.list_participants(activity_id)
+
+    json(conn, %{
+      data:
+        Enum.map(participants, fn p ->
+          %{
+            id: p.id,
+            user_id: p.user_id,
+            status: p.status,
+            joined_at: p.joined_at,
+            display_name: p.user.display_name,
+            avatar_preset: p.user.avatar_preset
+          }
+        end)
+    })
+  end
+
+  def pending_participants(conn, %{"id" => activity_id}) do
+    user = conn.assigns.current_user
+    activity = Activities.get_activity(activity_id)
+
+    cond do
+      is_nil(activity) ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      activity.creator_id != user.id ->
+        conn |> put_status(:forbidden) |> json(%{error: "not_owner"})
+
+      true ->
+        pending = Activities.list_pending_participants(activity_id)
+
+        json(conn, %{
+          data:
+            Enum.map(pending, fn p ->
+              %{
+                id: p.id,
+                user_id: p.user_id,
+                status: p.status,
+                display_name: p.user.display_name,
+                avatar_preset: p.user.avatar_preset
+              }
+            end)
+        })
+    end
+  end
+
+  def approve_participant(conn, %{"id" => activity_id, "user_id" => user_id}) do
+    owner = conn.assigns.current_user
+
+    case Activities.approve_participant(owner, activity_id, user_id) do
+      {:ok, _p} ->
+        json(conn, %{message: "approved"})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, :not_owner} ->
+        conn |> put_status(:forbidden) |> json(%{error: "not_owner"})
+    end
+  end
+
+  def reject_participant(conn, %{"id" => activity_id, "user_id" => user_id}) do
+    owner = conn.assigns.current_user
+
+    case Activities.reject_participant(owner, activity_id, user_id) do
+      {:ok, _p} ->
+        json(conn, %{message: "rejected"})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, :not_owner} ->
+        conn |> put_status(:forbidden) |> json(%{error: "not_owner"})
     end
   end
 

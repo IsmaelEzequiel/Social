@@ -5,12 +5,21 @@ defmodule ImpulseWeb.ActivityJSON do
     %{data: Enum.map(activities, &activity_data/1)}
   end
 
-  def show(%{activity: activity, participant_count: count}) do
-    %{data: activity_data(activity) |> Map.put(:participant_count, count)}
+  def show(%{activity: activity, participant_count: count} = assigns) do
+    data =
+      activity_data(activity)
+      |> Map.put(:participant_count, count)
+      |> maybe_put_participation_status(assigns)
+
+    %{data: data}
   end
 
-  def show(%{activity: activity}) do
-    %{data: activity_data(activity)}
+  def show(%{activity: activity} = assigns) do
+    data =
+      activity_data(activity)
+      |> maybe_put_participation_status(assigns)
+
+    %{data: data}
   end
 
   defp activity_data(%Activity{} = a) do
@@ -31,11 +40,19 @@ defmodule ImpulseWeb.ActivityJSON do
       status: a.status,
       visibility_score: a.visibility_score,
       confirmed_count: a.confirmed_count,
+      requires_approval: a.requires_approval,
       inserted_at: a.inserted_at,
       creator: maybe_creator(a),
       preset: maybe_preset(a)
     }
   end
+
+  defp maybe_put_participation_status(data, %{my_participation_status: status})
+       when not is_nil(status) do
+    Map.put(data, :my_participation_status, status)
+  end
+
+  defp maybe_put_participation_status(data, _assigns), do: data
 
   defp maybe_creator(%{creator: %Ecto.Association.NotLoaded{}}), do: nil
 
