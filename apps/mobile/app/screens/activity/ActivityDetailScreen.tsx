@@ -6,9 +6,15 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack"
 import type { Channel } from "phoenix"
 import { useTranslation } from "react-i18next"
 
+import * as Haptics from "expo-haptics"
+
+import { PresetIcon } from "@/components/PresetIcon"
 import type { AppStackParamList } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
 import { socketService } from "@/services/socket/socket-service"
+import { colors } from "@/theme/colors"
+
+const C = colors.palette
 
 type Nav = NativeStackNavigationProp<AppStackParamList>
 type Route = RouteProp<AppStackParamList, "ActivityDetail">
@@ -72,16 +78,21 @@ export const ActivityDetailScreen = () => {
   const handleJoin = async () => {
     const res = await api.post<{ status: string }>(`/activities/${activityId}/join`)
     if (res.ok) {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
       loadActivity()
     } else {
-      Alert.alert("Erro", "Falha ao participar")
+      Alert.alert(t("common:error"), t("common:failedAction"))
     }
   }
 
   const handleLeave = async () => {
     const res = await api.post(`/activities/${activityId}/leave`)
-    if (res.ok) loadActivity()
-    else Alert.alert("Erro", "Falha ao sair")
+    if (res.ok) {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+      loadActivity()
+    } else {
+      Alert.alert(t("common:error"), t("common:failedAction"))
+    }
   }
 
   const handleConfirm = async () => {
@@ -89,7 +100,7 @@ export const ActivityDetailScreen = () => {
     if (res.ok) {
       navigation.replace("EventRoom", { activityId })
     } else {
-      Alert.alert("Erro", "Falha ao confirmar")
+      Alert.alert(t("common:error"), t("common:failedAction"))
     }
   }
 
@@ -114,7 +125,7 @@ export const ActivityDetailScreen = () => {
       </TouchableOpacity>
 
       <View style={styles.header}>
-        <Text style={styles.icon}>{activity.preset?.icon || "?"}</Text>
+        <PresetIcon icon={activity.preset?.icon || "lightning-bolt"} size={48} color={C.primary} />
         <Text style={styles.title}>{activity.title}</Text>
         <Text style={styles.mode}>
           {activity.mode === "flash" ? t("activity:flash") : t("activity:planned")}
@@ -157,11 +168,14 @@ export const ActivityDetailScreen = () => {
           </View>
         )}
 
-        {/* Joined — can confirm */}
+        {/* Joined — enter room or confirm */}
         {myStatus === "joined" && (
           <>
-            <TouchableOpacity style={styles.primaryBtn} onPress={handleConfirm}>
-              <Text style={styles.primaryText}>{t("upcoming:confirm")}</Text>
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => navigation.navigate("EventRoom", { activityId })}
+            >
+              <Text style={styles.primaryText}>{t("eventRoom:tabs.chat")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.secondaryBtn} onPress={handleLeave}>
               <Text style={styles.secondaryText}>{t("map:leave")}</Text>
@@ -176,7 +190,7 @@ export const ActivityDetailScreen = () => {
               style={styles.primaryBtn}
               onPress={() => navigation.navigate("EventRoom", { activityId })}
             >
-              <Text style={styles.primaryText}>Entrar ao vivo</Text>
+              <Text style={styles.primaryText}>{t("activity:detail.enterLive")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.secondaryBtn} onPress={handleLeave}>
               <Text style={styles.secondaryText}>{t("map:leave")}</Text>
@@ -184,8 +198,8 @@ export const ActivityDetailScreen = () => {
           </>
         )}
 
-        {/* Participant — can go to event room */}
-        {isParticipant && (
+        {/* Participant with other status (e.g. attended) — can go to event room */}
+        {isParticipant && myStatus !== "joined" && myStatus !== "confirmed" && (
           <TouchableOpacity
             style={styles.chatBtn}
             onPress={() => navigation.navigate("EventRoom", { activityId })}
@@ -201,29 +215,29 @@ export const ActivityDetailScreen = () => {
 const styles = StyleSheet.create({
   actions: { gap: 12, padding: 24 },
   backBtn: { padding: 16, paddingTop: 60 },
-  backText: { color: "#6C63FF", fontSize: 16 },
+  backText: { color: C.primary, fontSize: 16 },
   chatBtn: {
     alignItems: "center",
-    backgroundColor: "#333",
+    backgroundColor: C.text,
     borderRadius: 12,
     padding: 16,
   },
-  chatText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  container: { backgroundColor: "#f8f8f8", flex: 1 },
-  detail: { color: "#444", fontSize: 15 },
+  chatText: { color: C.white, fontSize: 16, fontWeight: "600" },
+  container: { backgroundColor: C.card, flex: 1 },
+  detail: { color: C.textSecondary, fontSize: 15 },
   disabledBtn: {
     alignItems: "center",
-    backgroundColor: "#ccc",
+    backgroundColor: C.disabled,
     borderRadius: 12,
     padding: 16,
   },
-  disabledText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  disabledText: { color: C.white, fontSize: 16, fontWeight: "700" },
   header: { alignItems: "center", padding: 24 },
   icon: { fontSize: 48 },
   info: { gap: 4, paddingHorizontal: 24 },
   loading: { alignItems: "center", flex: 1, justifyContent: "center" },
   mode: {
-    color: "#6C63FF",
+    color: C.primary,
     fontSize: 14,
     fontWeight: "600",
     marginTop: 4,
@@ -238,19 +252,19 @@ const styles = StyleSheet.create({
   pendingText: { color: "#856404", fontSize: 15, fontWeight: "600" },
   primaryBtn: {
     alignItems: "center",
-    backgroundColor: "#6C63FF",
+    backgroundColor: C.primary,
     borderRadius: 12,
     padding: 16,
   },
-  primaryText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  primaryText: { color: C.white, fontSize: 16, fontWeight: "700" },
   secondaryBtn: {
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderColor: "#ddd",
+    backgroundColor: C.white,
+    borderColor: C.border,
     borderRadius: 12,
     borderWidth: 1,
     padding: 16,
   },
-  secondaryText: { color: "#666", fontSize: 16, fontWeight: "600" },
+  secondaryText: { color: C.textSecondary, fontSize: 16, fontWeight: "600" },
   title: { fontSize: 24, fontWeight: "700", marginTop: 8, textAlign: "center" },
 })

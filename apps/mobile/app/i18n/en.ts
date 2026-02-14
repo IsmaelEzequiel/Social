@@ -1,12 +1,6 @@
 import demoEn from "./demo-en"
 
 const en = {
-  common: {
-    ok: "OK!",
-    cancel: "Cancel",
-    back: "Back",
-    logOut: "Log Out",
-  },
   welcomeScreen: {
     postscript:
       "psst  — This probably isn't what your app looks like. (Unless your designer handed you these screens, and in that case, ship it!)",
@@ -122,6 +116,20 @@ const en = {
     },
   },
 
+  common: {
+    ok: "OK!",
+    cancel: "Cancel",
+    back: "Back",
+    logOut: "Log Out",
+    loading: "Loading...",
+    retry: "Try again",
+    save: "Save",
+    confirm: "Confirm",
+    delete: "Delete",
+    send: "Send",
+    error: "Error",
+    failedAction: "Action failed. Try again.",
+  },
   map: {
     title: "Map",
     createActivity: "Create activity",
@@ -139,6 +147,10 @@ const en = {
       km10: "10 km",
       km25: "25 km",
     },
+    empty: {
+      title: "Nothing happening nearby",
+      subtitle: "Be the first! Tap + to create an activity",
+    },
   },
   activity: {
     flash: "Flash",
@@ -146,19 +158,26 @@ const en = {
     requestToJoin: "Request to Join",
     pendingApproval: "Pending Approval",
     create: {
-      title: "New activity",
-      choosePreset: "Choose type",
+      title: "New Activity",
+      choosePreset: "What?",
       chooseLocation: "Where?",
       chooseTime: "When?",
       chooseParticipants: "How many?",
       duration: "Duration",
       minutes: "{{count}} min",
       create: "Create activity",
+      createFlash: "Create Flash",
+      now: "Now",
+      endsAt: "Ends at ~{{time}}",
+      includingYou: "{{count}} people including you",
+      currentLocation: "Current location",
     },
     detail: {
       creator: "Created by {{name}}",
       spotsLeft: "{{count}} spots left",
       confirmed: "{{count}} confirmed",
+      startingNow: "Starting now",
+      enterLive: "Enter live",
     },
     chat: {
       placeholder: "Message...",
@@ -167,6 +186,12 @@ const en = {
     feedback: {
       title: "How was it?",
       submit: "Submit",
+      thankYou: "Thanks for the feedback!",
+      doAgain: "Would you do this again?",
+      yes: "Yes",
+      maybe: "Maybe",
+      no: "No",
+      done: "Done",
     },
   },
   eventRoom: {
@@ -177,6 +202,8 @@ const en = {
     report: {
       button: "Report",
       title: "Report Activity",
+      submitted: "Report submitted",
+      reasonPlaceholder: "Reason...",
     },
     participants: {
       pending: "Pending Requests",
@@ -186,6 +213,37 @@ const en = {
       pendingEmpty: "No pending requests",
     },
     pendingApproval: "Waiting for owner approval...",
+  },
+  myEvents: {
+    title: "My Events",
+    empty: "You haven't created any events yet",
+    deleteTitle: "Delete Event",
+    deleteConfirm: "Are you sure you want to delete \"{{title}}\"?",
+  },
+  upcoming: {
+    title: "Upcoming",
+    empty: "No upcoming activities",
+    confirm: "Confirm",
+  },
+  profile: {
+    title: "Profile",
+    activitiesJoined: "Joined",
+    activitiesCreated: "Created",
+    badges: "Badges",
+    trophies: "Trophies",
+    subscription: "Impulse Pro",
+    settings: "Settings",
+  },
+  subscription: {
+    title: "Impulse Pro",
+    price: "$4.99/month",
+    subscribe: "Subscribe",
+    cancel: "Cancel subscription",
+    benefits: {
+      unlimitedPlanned: "Unlimited planned activities",
+      extendedDuration: "Up to 6 hour duration",
+      priorityVisibility: "Priority map visibility",
+    },
   },
 
   ...demoEn,

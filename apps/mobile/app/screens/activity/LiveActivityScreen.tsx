@@ -1,11 +1,17 @@
 import { useState, useEffect, useCallback } from "react"
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native"
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native"
+import * as Haptics from "expo-haptics"
 import { useTranslation } from "react-i18next"
 import { useRoute, useNavigation, RouteProp } from "@react-navigation/native"
 import { NativeStackNavigationProp } from "@react-navigation/native-stack"
-import { api } from "@/services/api"
+
+import { PresetIcon } from "@/components/PresetIcon"
 import type { AppStackParamList } from "@/navigators/navigationTypes"
+import { api } from "@/services/api"
+import { colors } from "@/theme/colors"
 import type { Activity } from "@impulse/shared"
+
+const C = colors.palette
 
 type Nav = NativeStackNavigationProp<AppStackParamList>
 type Route = RouteProp<AppStackParamList, "LiveActivity">
@@ -16,6 +22,13 @@ interface LiveActivityData extends Activity {
   preset?: { name: string; icon: string }
 }
 
+const EMOJI_SCORES = [
+  { emoji: "\uD83D\uDE15", score: 1 }, // 😕
+  { emoji: "\uD83D\uDE42", score: 2 }, // 🙂
+  { emoji: "\uD83D\uDE0A", score: 4 }, // 😊
+  { emoji: "\uD83E\uDD29", score: 5 }, // 🤩
+]
+
 export const LiveActivityScreen = () => {
   const { t } = useTranslation()
   const navigation = useNavigation<Nav>()
@@ -23,6 +36,7 @@ export const LiveActivityScreen = () => {
   const { activityId } = route.params
   const [activity, setActivity] = useState<LiveActivityData | null>(null)
   const [feedbackScore, setFeedbackScore] = useState<number | null>(null)
+  const [doAgain, setDoAgain] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
 
   const loadActivity = useCallback(async () => {
@@ -36,14 +50,20 @@ export const LiveActivityScreen = () => {
     loadActivity()
   }, [loadActivity])
 
-  const handleFeedback = async () => {
+  const handleSubmitFeedback = async () => {
     if (!feedbackScore) return
-    const res = await api.post(`/activities/${activityId}/feedback`, { score: feedbackScore })
+    const res = await api.post(`/activities/${activityId}/feedback`, {
+      score: feedbackScore,
+      text: doAgain ? `Would do again: ${doAgain}` : undefined,
+    })
     if (res.ok) {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
       setSubmitted(true)
-    } else {
-      Alert.alert("Erro", "Falha ao enviar feedback")
     }
+  }
+
+  const handleDone = () => {
+    navigation.goBack()
   }
 
   if (!activity) {
@@ -56,6 +76,12 @@ export const LiveActivityScreen = () => {
 
   const isCompleted = activity.status === "completed"
 
+  if (!isCompleted) {
+    // Redirect to EventRoom for active activities
+    navigation.replace("EventRoom", { activityId })
+    return null
+  }
+
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -63,50 +89,71 @@ export const LiveActivityScreen = () => {
       </TouchableOpacity>
 
       <View style={styles.header}>
-        <Text style={styles.icon}>{activity.preset?.icon || "?"}</Text>
+        <PresetIcon icon={activity.preset?.icon || "lightning-bolt"} size={48} color={C.primary} />
         <Text style={styles.title}>{activity.title}</Text>
-        <Text style={styles.status}>{activity.status?.toUpperCase()}</Text>
-        <Text style={styles.participants}>
-          {activity.participant_count || 0}/{activity.max_participants}
-        </Text>
       </View>
 
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.chatBtn}
-          onPress={() => navigation.navigate("Chat", { activityId })}
-        >
-          <Text style={styles.chatText}>Abrir Chat</Text>
-        </TouchableOpacity>
-      </View>
-
-      {isCompleted && !submitted && (
-        <View style={styles.feedbackSection}>
+      {!submitted && (
+        <View style={styles.feedbackCard}>
+          {/* Emoji rating */}
           <Text style={styles.feedbackTitle}>{t("activity:feedback.title")}</Text>
-          <View style={styles.stars}>
-            {[1, 2, 3, 4, 5].map((score) => (
+          <View style={styles.emojiRow}>
+            {EMOJI_SCORES.map((item) => (
               <TouchableOpacity
-                key={score}
-                onPress={() => setFeedbackScore(score)}
-                style={[styles.star, feedbackScore === score && styles.starSelected]}
+                key={item.score}
+                onPress={() => {
+                  setFeedbackScore(item.score)
+                  Haptics.selectionAsync()
+                }}
+                style={[styles.emojiBtn, feedbackScore === item.score && styles.emojiBtnSelected]}
               >
-                <Text style={styles.starText}>{score}</Text>
+                <Text style={styles.emoji}>{item.emoji}</Text>
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Would you do this again? */}
+          {feedbackScore !== null && (
+            <>
+              <Text style={styles.doAgainLabel}>{t("activity:feedback.doAgain")}</Text>
+              <View style={styles.doAgainRow}>
+                {(["yes", "maybe", "no"] as const).map((opt) => (
+                  <TouchableOpacity
+                    key={opt}
+                    style={[styles.doAgainBtn, doAgain === opt && styles.doAgainBtnSelected]}
+                    onPress={() => setDoAgain(opt)}
+                  >
+                    <Text
+                      style={[
+                        styles.doAgainText,
+                        doAgain === opt && styles.doAgainTextSelected,
+                      ]}
+                    >
+                      {t(`activity:feedback.${opt}`)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
+          {/* Submit */}
           <TouchableOpacity
             style={[styles.submitBtn, !feedbackScore && styles.submitBtnDisabled]}
-            onPress={handleFeedback}
+            onPress={handleSubmitFeedback}
             disabled={!feedbackScore}
           >
-            <Text style={styles.submitText}>{t("activity:feedback.submit")}</Text>
+            <Text style={styles.submitText}>{t("activity:feedback.done")}</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {submitted && (
-        <View style={styles.feedbackSection}>
-          <Text style={styles.thankYou}>Obrigado pelo feedback!</Text>
+        <View style={styles.feedbackCard}>
+          <Text style={styles.thankYou}>{t("activity:feedback.thankYou")}</Text>
+          <TouchableOpacity style={styles.doneBtn} onPress={handleDone}>
+            <Text style={styles.doneText}>{t("activity:feedback.done")}</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -114,49 +161,59 @@ export const LiveActivityScreen = () => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
-  loading: { flex: 1, justifyContent: "center", alignItems: "center" },
   backBtn: { padding: 16, paddingTop: 60 },
-  backText: { color: "#6C63FF", fontSize: 16 },
-  header: { alignItems: "center", padding: 24 },
-  icon: { fontSize: 48 },
-  title: { fontSize: 22, fontWeight: "700", marginTop: 8 },
-  status: { fontSize: 14, color: "#6C63FF", fontWeight: "700", marginTop: 4 },
-  participants: { fontSize: 16, color: "#666", marginTop: 4 },
-  actions: { padding: 24, gap: 12 },
-  chatBtn: {
-    backgroundColor: "#333",
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  chatText: { color: "#fff", fontWeight: "600", fontSize: 16 },
-  feedbackSection: {
-    padding: 24,
-    backgroundColor: "#fff",
-    marginHorizontal: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  feedbackTitle: { fontSize: 18, fontWeight: "700", marginBottom: 16 },
-  stars: { flexDirection: "row", gap: 12, marginBottom: 16 },
-  star: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#f0f0f0",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  starSelected: { backgroundColor: "#6C63FF" },
-  starText: { fontSize: 18, fontWeight: "700", color: "#333" },
-  submitBtn: {
-    backgroundColor: "#6C63FF",
-    paddingHorizontal: 32,
-    paddingVertical: 12,
+  backText: { color: C.primary, fontSize: 16 },
+  container: { backgroundColor: C.card, flex: 1 },
+  doAgainBtn: {
+    backgroundColor: C.inputBg,
     borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
-  submitBtnDisabled: { opacity: 0.5 },
-  submitText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  thankYou: { fontSize: 18, fontWeight: "600", color: "#4CAF50" },
+  doAgainBtnSelected: { backgroundColor: C.primary },
+  doAgainLabel: { color: C.text, fontSize: 16, fontWeight: "600", marginBottom: 12, marginTop: 20 },
+  doAgainRow: { flexDirection: "row", gap: 12 },
+  doAgainText: { color: C.textSecondary, fontSize: 15, fontWeight: "600" },
+  doAgainTextSelected: { color: C.white },
+  doneBtn: {
+    backgroundColor: C.primary,
+    borderRadius: 12,
+    marginTop: 16,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+  },
+  doneText: { color: C.white, fontSize: 16, fontWeight: "700" },
+  emoji: { fontSize: 36 },
+  emojiBtn: {
+    alignItems: "center",
+    borderColor: "transparent",
+    borderRadius: 16,
+    borderWidth: 3,
+    height: 64,
+    justifyContent: "center",
+    width: 64,
+  },
+  emojiBtnSelected: { backgroundColor: C.primaryLight, borderColor: C.primary },
+  emojiRow: { flexDirection: "row", gap: 16, marginBottom: 8 },
+  feedbackCard: {
+    alignItems: "center",
+    backgroundColor: C.white,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    padding: 24,
+  },
+  feedbackTitle: { fontSize: 20, fontWeight: "700", marginBottom: 20 },
+  header: { alignItems: "center", padding: 24 },
+  loading: { alignItems: "center", flex: 1, justifyContent: "center" },
+  submitBtn: {
+    backgroundColor: C.success,
+    borderRadius: 12,
+    marginTop: 24,
+    paddingHorizontal: 48,
+    paddingVertical: 14,
+  },
+  submitBtnDisabled: { opacity: 0.4 },
+  submitText: { color: C.white, fontSize: 16, fontWeight: "700" },
+  thankYou: { color: C.success, fontSize: 20, fontWeight: "700" },
+  title: { fontSize: 22, fontWeight: "700", marginTop: 12 },
 })

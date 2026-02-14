@@ -6,6 +6,8 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack"
 import { api } from "@/services/api"
 import { useAuth } from "@/context/AuthContext"
 import type { AppStackParamList } from "@/navigators/navigationTypes"
+import { colors } from "@/theme/colors"
+const C = colors.palette
 
 type Nav = NativeStackNavigationProp<AppStackParamList>
 
@@ -102,17 +104,17 @@ export const ProfileScreen = () => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
+  container: { flex: 1, backgroundColor: C.card },
   header: { alignItems: "center", paddingTop: 60, paddingBottom: 24 },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#6C63FF",
+    backgroundColor: C.primary,
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarText: { color: "#fff", fontSize: 28, fontWeight: "700" },
+  avatarText: { color: C.white, fontSize: 28, fontWeight: "700" },
   name: { fontSize: 22, fontWeight: "700", marginTop: 12 },
   proBadge: {
     backgroundColor: "#FFD700",
@@ -121,21 +123,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 8,
   },
-  proText: { fontWeight: "800", fontSize: 12, color: "#333" },
+  proText: { fontWeight: "800", fontSize: 12, color: C.textSecondary },
   stats: {
     flexDirection: "row",
-    backgroundColor: "#fff",
+    backgroundColor: C.white,
     marginHorizontal: 16,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
   statItem: { flex: 1, alignItems: "center" },
-  statNumber: { fontSize: 24, fontWeight: "700", color: "#6C63FF" },
-  statLabel: { fontSize: 13, color: "#666", marginTop: 4 },
-  statDivider: { width: 1, backgroundColor: "#eee" },
+  statNumber: { fontSize: 24, fontWeight: "700", color: C.primary },
+  statLabel: { fontSize: 13, color: C.textSecondary, marginTop: 4 },
+  statDivider: { width: 1, backgroundColor: C.divider },
   menu: {
-    backgroundColor: "#fff",
+    backgroundColor: C.white,
     marginHorizontal: 16,
     borderRadius: 12,
     overflow: "hidden",
@@ -146,16 +148,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: C.inputBg,
   },
   menuText: { fontSize: 16, fontWeight: "500" },
-  menuArrow: { fontSize: 18, color: "#ccc" },
+  menuArrow: { fontSize: 18, color: C.disabled },
   logoutBtn: {
     margin: 16,
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: C.white,
   },
   logoutText: { color: "#FF3B30", fontWeight: "600", fontSize: 16 },
 })

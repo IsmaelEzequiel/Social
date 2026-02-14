@@ -1,9 +1,12 @@
-import { createContext, FC, PropsWithChildren, useCallback, useContext } from "react"
+import { createContext, FC, PropsWithChildren, useCallback, useContext, useEffect } from "react"
 import { useMMKVString } from "react-native-mmkv"
+
+import { api } from "@/services/api"
 
 export type AuthContextType = {
   isAuthenticated: boolean
   accessToken?: string
+  userId?: string
   setTokens: (accessToken: string, refreshToken: string) => void
   logout: () => void
 }
@@ -13,6 +16,7 @@ export const AuthContext = createContext<AuthContextType | null>(null)
 export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   const [accessToken, setAccessToken] = useMMKVString("impulse:accessToken")
   const [, setRefreshToken] = useMMKVString("impulse:refreshToken")
+  const [userId, setUserId] = useMMKVString("impulse:userId")
 
   const setTokens = useCallback(
     (access: string, refresh: string) => {
@@ -25,11 +29,24 @@ export const AuthProvider: FC<PropsWithChildren> = ({ children }) => {
   const logout = useCallback(() => {
     setAccessToken(undefined)
     setRefreshToken(undefined)
-  }, [setAccessToken, setRefreshToken])
+    setUserId(undefined)
+  }, [setAccessToken, setRefreshToken, setUserId])
+
+  // Fetch user ID when authenticated and not yet stored
+  useEffect(() => {
+    if (accessToken && !userId) {
+      api.get<{ data: { id: string } }>("/me").then((res) => {
+        if (res.ok && res.data) {
+          setUserId(res.data.data.id)
+        }
+      })
+    }
+  }, [accessToken, userId, setUserId])
 
   const value: AuthContextType = {
     isAuthenticated: !!accessToken,
     accessToken,
+    userId,
     setTokens,
     logout,
   }

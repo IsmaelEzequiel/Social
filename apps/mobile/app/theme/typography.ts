@@ -1,5 +1,16 @@
-// TODO: write documentation about fonts and typography along with guides on how to add custom fonts in own
-// markdown file and add links from here
+/**
+ * Typography — dashboard.md Section 7
+ *
+ * Uses system fonts: SF Pro (iOS) / Roboto (Android).
+ * SpaceGrotesk is kept as an optional loaded font but no longer primary.
+ *
+ * Scale:
+ *   title:     Bold,    24pt
+ *   heading:   SemiBold,18pt
+ *   body:      Regular, 16pt
+ *   caption:   Regular, 13pt
+ *   pinLabel:  Medium,  12pt
+ */
 
 import { Platform } from "react-native"
 import {
@@ -20,52 +31,51 @@ export const customFontsToLoad = {
 
 const fonts = {
   spaceGrotesk: {
-    // Cross-platform Google font.
     light: "spaceGroteskLight",
     normal: "spaceGroteskRegular",
     medium: "spaceGroteskMedium",
     semiBold: "spaceGroteskSemiBold",
     bold: "spaceGroteskBold",
   },
-  helveticaNeue: {
-    // iOS only font.
-    thin: "HelveticaNeue-Thin",
-    light: "HelveticaNeue-Light",
-    normal: "Helvetica Neue",
-    medium: "HelveticaNeue-Medium",
+  system: {
+    light: Platform.select({ ios: "System", android: "sans-serif-light" }) as string,
+    normal: Platform.select({ ios: "System", android: "sans-serif" }) as string,
+    medium: Platform.select({ ios: "System", android: "sans-serif-medium" }) as string,
+    semiBold: Platform.select({ ios: "System", android: "sans-serif-medium" }) as string,
+    bold: Platform.select({ ios: "System", android: "sans-serif" }) as string,
   },
   courier: {
-    // iOS only font.
     normal: "Courier",
   },
-  sansSerif: {
-    // Android only font.
-    thin: "sans-serif-thin",
-    light: "sans-serif-light",
-    normal: "sans-serif",
-    medium: "sans-serif-medium",
-  },
   monospace: {
-    // Android only font.
     normal: "monospace",
   },
 }
 
 export const typography = {
-  /**
-   * The fonts are available to use, but prefer using the semantic name.
-   */
   fonts,
   /**
-   * The primary font. Used in most places.
+   * Primary font — system (SF Pro on iOS, Roboto on Android).
    */
-  primary: fonts.spaceGrotesk,
+  primary: fonts.system,
   /**
-   * An alternate font used for perhaps titles and stuff.
+   * Secondary font — SpaceGrotesk for display/accent use.
    */
-  secondary: Platform.select({ ios: fonts.helveticaNeue, android: fonts.sansSerif }),
+  secondary: fonts.spaceGrotesk,
   /**
-   * Lets get fancy with a monospace font!
+   * Monospace font.
    */
   code: Platform.select({ ios: fonts.courier, android: fonts.monospace }),
 }
+
+/**
+ * Pre-defined type scale from the dashboard design system.
+ * Use these in StyleSheet definitions for consistency.
+ */
+export const typeScale = {
+  title: { fontSize: 24, fontWeight: "700" as const },
+  heading: { fontSize: 18, fontWeight: "600" as const },
+  body: { fontSize: 16, fontWeight: "400" as const },
+  caption: { fontSize: 13, fontWeight: "400" as const },
+  pinLabel: { fontSize: 12, fontWeight: "500" as const },
+} as const

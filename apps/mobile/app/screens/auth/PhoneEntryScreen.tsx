@@ -3,6 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator 
 import { useTranslation } from "react-i18next"
 import type { AuthStackScreenProps } from "@/navigators/navigationTypes"
 import { authService } from "@/services/api/auth-service"
+import { colors } from "@/theme/colors"
+const C = colors.palette
 
 export const PhoneEntryScreen = ({ navigation }: AuthStackScreenProps<"PhoneEntry">) => {
   const { t } = useTranslation()
@@ -58,7 +60,7 @@ export const PhoneEntryScreen = ({ navigation }: AuthStackScreenProps<"PhoneEntr
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={C.white} />
         ) : (
           <Text style={styles.buttonText}>{t("auth:phoneEntry.send")}</Text>
         )}
@@ -70,10 +72,10 @@ export const PhoneEntryScreen = ({ navigation }: AuthStackScreenProps<"PhoneEntr
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, justifyContent: "center" },
   title: { fontSize: 28, fontWeight: "bold", marginBottom: 8 },
-  subtitle: { fontSize: 16, color: "#666", marginBottom: 32 },
+  subtitle: { fontSize: 16, color: C.textSecondary, marginBottom: 32 },
   inputRow: { flexDirection: "row", marginBottom: 16 },
   countryCode: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: C.inputBg,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
@@ -83,7 +85,7 @@ const styles = StyleSheet.create({
   countryCodeText: { fontSize: 18, fontWeight: "600" },
   input: {
     flex: 1,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: C.inputBg,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
@@ -91,11 +93,11 @@ const styles = StyleSheet.create({
   },
   error: { color: "#e53935", marginBottom: 12 },
   button: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: C.primary,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "600" },
+  buttonText: { color: C.white, fontSize: 18, fontWeight: "600" },
 })

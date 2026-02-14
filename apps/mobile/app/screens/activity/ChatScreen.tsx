@@ -15,6 +15,8 @@ import { useTranslation } from "react-i18next"
 
 import type { AppStackParamList } from "@/navigators/navigationTypes"
 import { socketService } from "@/services/socket/socket-service"
+import { colors } from "@/theme/colors"
+const C = colors.palette
 
 type Route = RouteProp<AppStackParamList, "Chat">
 
@@ -118,7 +120,7 @@ export const ChatScreen = () => {
           value={input}
           onChangeText={setInput}
           placeholder={t("activity:chat.placeholder")}
-          placeholderTextColor="#999"
+          placeholderTextColor={C.subtle}
           returnKeyType="send"
           onSubmitEditing={sendMessage}
         />
@@ -133,16 +135,16 @@ export const ChatScreen = () => {
 const styles = StyleSheet.create({
   avatarCircle: {
     alignItems: "center",
-    backgroundColor: "#6C63FF",
+    backgroundColor: C.primary,
     borderRadius: 18,
     height: 36,
     justifyContent: "center",
     marginRight: 10,
     width: 36,
   },
-  avatarText: { color: "#fff", fontSize: 14, fontWeight: "700" },
-  backText: { color: "#6C63FF", fontSize: 16 },
-  container: { backgroundColor: "#f8f8f8", flex: 1 },
+  avatarText: { color: C.white, fontSize: 14, fontWeight: "700" },
+  backText: { color: C.primary, fontSize: 16 },
+  container: { backgroundColor: C.card, flex: 1 },
   ephemeralNotice: {
     alignItems: "center",
     backgroundColor: "#FFF3CD",
@@ -151,8 +153,8 @@ const styles = StyleSheet.create({
   ephemeralText: { color: "#856404", fontSize: 12 },
   header: {
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderBottomColor: "#eee",
+    backgroundColor: C.white,
+    borderBottomColor: C.divider,
     borderBottomWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -162,7 +164,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 18, fontWeight: "700" },
   input: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: C.inputBg,
     borderRadius: 20,
     flex: 1,
     fontSize: 15,
@@ -171,8 +173,8 @@ const styles = StyleSheet.create({
   },
   inputRow: {
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderTopColor: "#eee",
+    backgroundColor: C.white,
+    borderTopColor: C.divider,
     borderTopWidth: 1,
     flexDirection: "row",
     padding: 12,
@@ -183,16 +185,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginBottom: 12,
   },
-  msgBody: { color: "#444", fontSize: 15, marginTop: 2 },
+  msgBody: { color: C.textSecondary, fontSize: 15, marginTop: 2 },
   msgContent: { flex: 1 },
-  msgName: { color: "#333", fontSize: 14, fontWeight: "600" },
-  msgTime: { color: "#999", fontSize: 11, marginLeft: 8, marginTop: 2 },
+  msgName: { color: C.text, fontSize: 14, fontWeight: "600" },
+  msgTime: { color: C.subtle, fontSize: 11, marginLeft: 8, marginTop: 2 },
   sendBtn: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: C.primary,
     borderRadius: 20,
     marginLeft: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  sendText: { color: "#fff", fontWeight: "600" },
+  sendText: { color: C.white, fontWeight: "600" },
 })

@@ -38,8 +38,11 @@ defmodule ImpulseWeb.Router do
     # Activities
     get "/activities", ActivityController, :index
     get "/activities/upcoming", ActivityController, :upcoming
+    get "/activities/upcoming/messages-count", ActivityController, :messages_count
+    get "/activities/mine", ActivityController, :mine
     post "/activities", ActivityController, :create
     get "/activities/:id", ActivityController, :show
+    delete "/activities/:id", ActivityController, :delete
     post "/activities/:id/join", ActivityController, :join
     delete "/activities/:id/leave", ActivityController, :leave
     post "/activities/:id/confirm", ActivityController, :confirm

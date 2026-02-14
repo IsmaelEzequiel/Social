@@ -1,16 +1,29 @@
-import { useState, useEffect, useCallback, useRef } from "react"
-import { View, TouchableOpacity, Text, StyleSheet, Modal } from "react-native"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { View, TouchableOpacity, Text, StyleSheet, Modal, Dimensions } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import * as Location from "expo-location"
 import type { Activity } from "@impulse/shared"
 import { useNavigation } from "@react-navigation/native"
 import { NativeStackNavigationProp } from "@react-navigation/native-stack"
 import MapboxGL from "@rnmapbox/maps"
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  withSpring,
+} from "react-native-reanimated"
 import { useTranslation } from "react-i18next"
 
 import { ActivityPin } from "@/components/ActivityPin"
+import { useAuth } from "@/context/AuthContext"
 import type { AppStackParamList } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
 import { socketService } from "@/services/socket/socket-service"
+import { colors } from "@/theme/colors"
+
+const C = colors.palette
 
 import { ActivityDetailModal } from "./ActivityDetailModal"
 import { CreateActivitySheet } from "./CreateActivitySheet"
@@ -20,19 +33,22 @@ type Nav = NativeStackNavigationProp<AppStackParamList>
 interface MapActivity extends Activity {
   participant_count?: number
   my_participation_status?: string | null
+  time_until_start_minutes?: number
+  time_remaining_minutes?: number
   preset?: { name: string; icon: string }
   creator?: { display_name: string; avatar_preset: number }
 }
 
 const RADIUS_OPTIONS = [
-  { label: "1 km", meters: 1000 },
-  { label: "5 km", meters: 5000 },
-  { label: "10 km", meters: 10000 },
-  { label: "25 km", meters: 25000 },
+  { label: "1 km", meters: 1000, zoom: 15 },
+  { label: "5 km", meters: 5000, zoom: 13 },
+  { label: "10 km", meters: 10000, zoom: 12 },
+  { label: "25 km", meters: 25000, zoom: 10 },
 ]
 
 export const MapScreen = () => {
   const { t } = useTranslation()
+  const { userId } = useAuth()
   const navigation = useNavigation<Nav>()
   const [activities, setActivities] = useState<MapActivity[]>([])
   const [showCreate, setShowCreate] = useState(false)
@@ -41,8 +57,56 @@ export const MapScreen = () => {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(
     null,
   )
+  const [pickedLocation, setPickedLocation] = useState<{
+    latitude: number
+    longitude: number
+  } | null>(null)
+  const [pickingLocation, setPickingLocation] = useState(false)
+
   const channelRef = useRef<ReturnType<typeof socketService.joinChannel>>(null)
   const cameraRef = useRef<MapboxGL.Camera>(null)
+
+  // Spring animation for bottom sheets (dashboard spec: damping 0.8, stiffness 300)
+  const screenHeight = Dimensions.get("window").height
+  const createSheetY = useSharedValue(screenHeight)
+  const detailSheetY = useSharedValue(screenHeight)
+
+  const SPRING_CONFIG = { damping: 20, stiffness: 300 }
+
+  useEffect(() => {
+    createSheetY.value = withSpring(showCreate ? 0 : screenHeight, SPRING_CONFIG)
+  }, [showCreate, createSheetY, screenHeight])
+
+  useEffect(() => {
+    detailSheetY.value = withSpring(selectedActivity ? 0 : screenHeight, SPRING_CONFIG)
+  }, [selectedActivity, detailSheetY, screenHeight])
+
+  const createSheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: createSheetY.value }],
+  }))
+
+  const detailSheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: detailSheetY.value }],
+  }))
+
+  // FAB pulse animation when no activities
+  const fabPulse = useSharedValue(1)
+
+  useEffect(() => {
+    if (activities.length === 0 && !pickingLocation) {
+      fabPulse.value = withRepeat(
+        withSequence(withTiming(1.15, { duration: 800 }), withTiming(1, { duration: 800 })),
+        -1,
+        false,
+      )
+    } else {
+      fabPulse.value = 1
+    }
+  }, [activities.length, pickingLocation, fabPulse])
+
+  const fabAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: fabPulse.value }],
+  }))
 
   // Request location on mount
   useEffect(() => {
@@ -55,7 +119,6 @@ export const MapScreen = () => {
           longitude: loc.coords.longitude,
         })
       } else {
-        // Fallback to São Paulo
         setUserLocation({ latitude: -23.5505, longitude: -46.6333 })
       }
     })()
@@ -128,8 +191,9 @@ export const MapScreen = () => {
   }, [])
 
   const handleMarkerPress = (activity: MapActivity) => {
+    const isOwner = activity.creator_id === userId
     const status = activity.my_participation_status
-    if (status === "joined" || status === "confirmed" || status === "attended") {
+    if (isOwner || status === "joined" || status === "confirmed" || status === "attended") {
       navigation.navigate("EventRoom", { activityId: activity.id })
     } else {
       setSelectedActivity(activity)
@@ -147,6 +211,81 @@ export const MapScreen = () => {
     [loadActivities],
   )
 
+  const handleMapPress = useCallback(
+    (event: { geometry: { coordinates: number[] } }) => {
+      if (pickingLocation) {
+        const [lng, lat] = event.geometry.coordinates
+        setPickedLocation({ latitude: lat, longitude: lng })
+      }
+    },
+    [pickingLocation],
+  )
+
+  const handleRadiusChange = useCallback(
+    (index: number) => {
+      setRadiusIndex(index)
+      // Auto-zoom map to match selected radius
+      if (cameraRef.current && userLocation) {
+        cameraRef.current.setCamera({
+          centerCoordinate: [userLocation.longitude, userLocation.latitude],
+          zoomLevel: RADIUS_OPTIONS[index].zoom,
+          animationDuration: 500,
+          animationMode: "flyTo",
+        })
+      }
+    },
+    [userLocation],
+  )
+
+  const handleFabPress = () => {
+    if (pickingLocation && pickedLocation) {
+      setPickingLocation(false)
+      setShowCreate(true)
+    } else {
+      setPickingLocation(true)
+      setPickedLocation(null)
+    }
+  }
+
+  const handleCancelPick = () => {
+    setPickingLocation(false)
+    setPickedLocation(null)
+  }
+
+  const handleJoined = useCallback(
+    (activityId: string) => {
+      setSelectedActivity(null)
+      navigation.navigate("EventRoom", { activityId })
+    },
+    [navigation],
+  )
+
+  // Radius circle GeoJSON for overlay
+  const radiusCircleGeoJSON = useMemo(() => {
+    if (!userLocation) return null
+    const points = 64
+    const coords: [number, number][] = []
+    const radiusKm = radiusMeters / 1000
+    const lat = userLocation.latitude
+    const lng = userLocation.longitude
+
+    for (let i = 0; i <= points; i++) {
+      const angle = (i / points) * 2 * Math.PI
+      const dx = radiusKm / (111.32 * Math.cos((lat * Math.PI) / 180))
+      const dy = radiusKm / 110.574
+      coords.push([lng + dx * Math.cos(angle), lat + dy * Math.sin(angle)])
+    }
+
+    return {
+      type: "Feature" as const,
+      geometry: {
+        type: "Polygon" as const,
+        coordinates: [coords],
+      },
+      properties: {},
+    }
+  }, [userLocation, radiusMeters])
+
   if (!userLocation) {
     return (
       <View style={styles.loadingContainer}>
@@ -155,121 +294,250 @@ export const MapScreen = () => {
     )
   }
 
+  const createLat = pickedLocation?.latitude ?? userLocation.latitude
+  const createLng = pickedLocation?.longitude ?? userLocation.longitude
+
   return (
     <View style={styles.container}>
       <MapboxGL.MapView
         style={styles.map}
         styleURL={MapboxGL.StyleURL.Street}
         onRegionDidChange={handleRegionChange}
+        onPress={handleMapPress}
       >
         <MapboxGL.Camera
           ref={cameraRef}
           centerCoordinate={[userLocation.longitude, userLocation.latitude]}
-          zoomLevel={13}
+          zoomLevel={RADIUS_OPTIONS[radiusIndex].zoom}
           animationMode="flyTo"
           animationDuration={1000}
         />
         <MapboxGL.UserLocation visible />
 
-        {activities.map((activity) => (
+        {/* Radius circle overlay */}
+        {radiusCircleGeoJSON && !pickingLocation && (
+          <MapboxGL.ShapeSource id="radius-circle" shape={radiusCircleGeoJSON}>
+            <MapboxGL.FillLayer
+              id="radius-fill"
+              style={{ fillColor: "rgba(108, 99, 255, 0.08)" }}
+            />
+            <MapboxGL.LineLayer
+              id="radius-line"
+              style={{
+                lineColor: "rgba(108, 99, 255, 0.25)",
+                lineWidth: 1,
+                lineDasharray: [4, 4],
+              }}
+            />
+          </MapboxGL.ShapeSource>
+        )}
+
+        {/* Picked location pin */}
+        {pickingLocation && pickedLocation && (
           <MapboxGL.MarkerView
-            key={activity.id}
-            coordinate={[activity.location.longitude, activity.location.latitude]}
+            coordinate={[pickedLocation.longitude, pickedLocation.latitude]}
           >
-            <TouchableOpacity onPress={() => handleMarkerPress(activity)}>
-              <ActivityPin
-                presetIcon={activity.preset?.icon || "?"}
-                presetName={activity.preset?.name || ""}
-                participantCount={activity.participant_count || 0}
-                maxParticipants={activity.max_participants}
-                status={activity.status}
-              />
-            </TouchableOpacity>
+            <View style={styles.pickedPin}>
+              <MaterialCommunityIcons name="plus" size={24} color="#fff" />
+            </View>
           </MapboxGL.MarkerView>
-        ))}
+        )}
+
+        {/* Activity markers */}
+        {activities
+          .filter((a) => a.location?.latitude != null && a.location?.longitude != null)
+          .map((activity) => (
+            <MapboxGL.MarkerView
+              key={activity.id}
+              coordinate={[activity.location.longitude, activity.location.latitude]}
+            >
+              <TouchableOpacity onPress={() => handleMarkerPress(activity)}>
+                <ActivityPin
+                  presetIcon={activity.preset?.icon || "lightning-bolt"}
+                  presetName={activity.preset?.name || ""}
+                  participantCount={activity.participant_count || 0}
+                  maxParticipants={activity.max_participants}
+                  status={activity.status}
+                  timeUntilStartMinutes={activity.time_until_start_minutes}
+                  timeRemainingMinutes={activity.time_remaining_minutes}
+                />
+              </TouchableOpacity>
+            </MapboxGL.MarkerView>
+          ))}
       </MapboxGL.MapView>
 
+      {/* Empty state overlay */}
+      {activities.length === 0 && !pickingLocation && (
+        <View style={styles.emptyOverlay}>
+          <Text style={styles.emptyTitle}>{t("map:empty.title")}</Text>
+          <Text style={styles.emptySubtitle}>{t("map:empty.subtitle")}</Text>
+        </View>
+      )}
+
       {/* Radius Filter */}
-      <View style={styles.radiusBar}>
-        {RADIUS_OPTIONS.map((opt, i) => (
-          <TouchableOpacity
-            key={opt.meters}
-            style={[styles.radiusPill, i === radiusIndex && styles.radiusPillActive]}
-            onPress={() => setRadiusIndex(i)}
-          >
-            <Text style={[styles.radiusText, i === radiusIndex && styles.radiusTextActive]}>
-              {opt.label}
-            </Text>
+      {!pickingLocation && (
+        <View style={styles.radiusBar}>
+          {RADIUS_OPTIONS.map((opt, i) => (
+            <TouchableOpacity
+              key={opt.meters}
+              style={[styles.radiusPill, i === radiusIndex && styles.radiusPillActive]}
+              onPress={() => handleRadiusChange(i)}
+            >
+              <Text style={[styles.radiusText, i === radiusIndex && styles.radiusTextActive]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Location picking banner */}
+      {pickingLocation && (
+        <View style={styles.pickBanner}>
+          <Text style={styles.pickBannerText}>
+            {pickedLocation
+              ? t("activity:create.chooseLocation") + " \u2713"
+              : t("activity:create.chooseLocation")}
+          </Text>
+          <TouchableOpacity onPress={handleCancelPick}>
+            <Text style={styles.pickCancelText}>{t("common:cancel")}</Text>
           </TouchableOpacity>
-        ))}
-      </View>
+        </View>
+      )}
 
       {/* FAB */}
-      <TouchableOpacity style={styles.fab} onPress={() => setShowCreate(true)}>
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
+      <Animated.View style={[styles.fabContainer, fabAnimStyle]}>
+        <TouchableOpacity
+          style={[styles.fab, pickingLocation && !pickedLocation && styles.fabDisabled]}
+          onPress={handleFabPress}
+          disabled={pickingLocation && !pickedLocation}
+        >
+          <MaterialCommunityIcons
+            name={pickingLocation ? "check" : "plus"}
+            size={28}
+            color="#fff"
+          />
+        </TouchableOpacity>
+      </Animated.View>
 
-      {/* Create Sheet */}
-      <Modal visible={showCreate} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+      {/* Create Sheet — spring-animated bottom sheet */}
+      {showCreate && (
+        <Animated.View style={[styles.sheetOverlay, createSheetStyle]}>
+          <TouchableOpacity
+            style={styles.sheetBackdrop}
+            activeOpacity={1}
+            onPress={() => {
+              setShowCreate(false)
+              setPickedLocation(null)
+            }}
+          />
           <CreateActivitySheet
-            latitude={userLocation.latitude}
-            longitude={userLocation.longitude}
+            latitude={createLat}
+            longitude={createLng}
             onCreated={() => {
               setShowCreate(false)
+              setPickedLocation(null)
               loadActivities(userLocation.latitude, userLocation.longitude)
             }}
-            onClose={() => setShowCreate(false)}
+            onClose={() => {
+              setShowCreate(false)
+              setPickedLocation(null)
+            }}
           />
-        </View>
-      </Modal>
+        </Animated.View>
+      )}
 
-      {/* Detail Modal */}
-      <Modal visible={!!selectedActivity} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          {selectedActivity && (
-            <ActivityDetailModal
-              activity={selectedActivity}
-              onJoined={() => {
-                setSelectedActivity(null)
-                loadActivities(userLocation.latitude, userLocation.longitude)
-              }}
-              onLeft={() => {
-                setSelectedActivity(null)
-                loadActivities(userLocation.latitude, userLocation.longitude)
-              }}
-              onClose={() => setSelectedActivity(null)}
-            />
-          )}
-        </View>
-      </Modal>
+      {/* Detail Sheet — spring-animated bottom sheet */}
+      {selectedActivity && (
+        <Animated.View style={[styles.sheetOverlay, detailSheetStyle]}>
+          <TouchableOpacity
+            style={styles.sheetBackdrop}
+            activeOpacity={1}
+            onPress={() => setSelectedActivity(null)}
+          />
+          <ActivityDetailModal
+            activity={selectedActivity}
+            onJoined={handleJoined}
+            onLeft={() => {
+              setSelectedActivity(null)
+              loadActivities(userLocation.latitude, userLocation.longitude)
+            }}
+            onClose={() => setSelectedActivity(null)}
+          />
+        </Animated.View>
+      )}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  emptyOverlay: {
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 16,
+    bottom: 100,
+    left: 40,
+    padding: 20,
+    position: "absolute",
+    right: 40,
+  },
+  emptySubtitle: { color: C.subtle, fontSize: 14, textAlign: "center" },
+  emptyTitle: { color: C.text, fontSize: 16, fontWeight: "600", marginBottom: 4 },
   fab: {
     alignItems: "center",
-    backgroundColor: "#6C63FF",
+    backgroundColor: C.primary,
     borderRadius: 28,
-    bottom: 24,
     elevation: 8,
     height: 56,
     justifyContent: "center",
-    position: "absolute",
-    right: 24,
-    shadowColor: "#000",
+    shadowColor: C.shadowBlack,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     width: 56,
   },
-  fabText: { color: "#fff", fontSize: 28, fontWeight: "300", marginTop: -2 },
+  fabContainer: {
+    bottom: 24,
+    position: "absolute",
+    right: 24,
+  },
+  fabDisabled: { opacity: 0.4 },
   loadingContainer: { alignItems: "center", flex: 1, justifyContent: "center" },
-  loadingText: { color: "#999", fontSize: 16 },
+  loadingText: { color: C.subtle, fontSize: 16 },
   map: { flex: 1 },
-  modalOverlay: { backgroundColor: "rgba(0,0,0,0.3)", flex: 1, justifyContent: "flex-end" },
+  sheetOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "flex-end",
+    zIndex: 100,
+  },
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
+  pickBanner: {
+    alignItems: "center",
+    backgroundColor: C.primary,
+    borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    left: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    position: "absolute",
+    right: 16,
+    top: 60,
+  },
+  pickBannerText: { color: C.white, fontSize: 15, fontWeight: "600" },
+  pickCancelText: { color: C.white, fontSize: 14, opacity: 0.8 },
+  pickedPin: {
+    alignItems: "center",
+    backgroundColor: C.primary,
+    borderRadius: 20,
+    height: 40,
+    justifyContent: "center",
+    width: 40,
+  },
   radiusBar: {
     flexDirection: "row",
     gap: 8,
@@ -280,25 +548,17 @@ const styles = StyleSheet.create({
     top: 60,
   },
   radiusPill: {
-    backgroundColor: "#fff",
+    backgroundColor: C.white,
     borderRadius: 20,
     elevation: 3,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    shadowColor: "#000",
+    shadowColor: C.shadowBlack,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
   },
-  radiusPillActive: {
-    backgroundColor: "#6C63FF",
-  },
-  radiusText: {
-    color: "#333",
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  radiusTextActive: {
-    color: "#fff",
-  },
+  radiusPillActive: { backgroundColor: C.primary },
+  radiusText: { color: C.textSecondary, fontSize: 13, fontWeight: "600" },
+  radiusTextActive: { color: C.white },
 })

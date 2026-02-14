@@ -190,6 +190,12 @@ const es: Translations = {
     },
     pendingApproval: "Waiting for owner approval...",
   },
+  myEvents: {
+    title: "My Events",
+    empty: "You haven't created any events yet",
+    deleteTitle: "Delete Event",
+    deleteConfirm: "Are you sure you want to delete \"{{title}}\"?",
+  },
 
   ...demoEs,
 }

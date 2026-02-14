@@ -1,12 +1,14 @@
 import Auth0 from "react-native-auth0"
-import { api } from "./index"
-import { authStorage } from "../storage/auth-storage"
-import { getDeviceFingerprint } from "../device/fingerprint"
+
 import type { AuthTokensResponse } from "./auth-service"
+import { getDeviceFingerprint } from "../device/fingerprint"
+import { authStorage } from "../storage/auth-storage"
+
+import { api } from "./index"
 
 const auth0 = new Auth0({
-  domain: "your-tenant.auth0.com",
-  clientId: "your-client-id",
+  domain: "dev-53fu5rbvopzjlgqe.us.auth0.com",
+  clientId: "rCJrZASLHehcuPG819m6i5BSJ2ykLXmj",
 })
 
 async function exchangeTokenWithBackend(idToken: string): Promise<AuthTokensResponse> {

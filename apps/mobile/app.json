@@ -34,6 +34,13 @@
   "plugins": [
     "expo-localization",
     "expo-font",
+    "@rnmapbox/maps",
+    [
+      "expo-location",
+      {
+        "locationWhenInUsePermission": "Show current location on map."
+      }
+    ],
     [
       "expo-splash-screen",
       {
@@ -56,7 +63,8 @@
     [
       "react-native-auth0",
       {
-        "domain": "your-tenant.auth0.com"
+        "domain": "dev-53fu5rbvopzjlgqe.us.auth0.com",
+        "customScheme": "com.impulsemobile.auth0"
       }
     ]
   ],

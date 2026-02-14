@@ -21,10 +21,9 @@ const C = colors.palette
 
 type Nav = NativeStackNavigationProp<AppStackParamList>
 
-interface UpcomingActivity extends Activity {
+interface MyActivity extends Activity {
   participant_count?: number
   message_count?: number
-  my_status?: string
   preset?: { name: string; icon: string }
 }
 
@@ -33,44 +32,57 @@ function formatBadge(count: number): string {
   return String(count)
 }
 
-export const UpcomingListScreen = () => {
+export const MyEventsScreen = () => {
   const { t } = useTranslation()
   const navigation = useNavigation<Nav>()
-  const [activities, setActivities] = useState<UpcomingActivity[]>([])
+  const [activities, setActivities] = useState<MyActivity[]>([])
   const [refreshing, setRefreshing] = useState(false)
 
-  const loadUpcoming = useCallback(async () => {
-    const res = await api.get<{ data: UpcomingActivity[] }>("/activities/upcoming")
+  const loadMyEvents = useCallback(async () => {
+    const res = await api.get<{ data: MyActivity[] }>("/activities/mine")
     if (res.ok && res.data) {
       setActivities(res.data.data)
     }
   }, [])
 
   useEffect(() => {
-    loadUpcoming()
-  }, [loadUpcoming])
+    loadMyEvents()
+  }, [loadMyEvents])
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
-    await loadUpcoming()
+    await loadMyEvents()
     setRefreshing(false)
-  }, [loadUpcoming])
+  }, [loadMyEvents])
 
-  const handleConfirm = useCallback(
-    async (activityId: string) => {
-      const res = await api.post(`/activities/${activityId}/confirm`)
-      if (res.ok) {
-        loadUpcoming()
-      } else {
-        Alert.alert(t("common:error"), t("common:failedAction"))
-      }
+  const handleDelete = useCallback(
+    (activityId: string, title: string) => {
+      Alert.alert(
+        t("myEvents:deleteTitle"),
+        t("myEvents:deleteConfirm", { title }),
+        [
+          { text: t("common:cancel"), style: "cancel" },
+          {
+            text: t("common:delete"),
+            style: "destructive",
+            onPress: async () => {
+              const res = await api.delete(`/activities/${activityId}`)
+              if (res.ok) {
+                setActivities((prev) => prev.filter((a) => a.id !== activityId))
+              } else {
+                Alert.alert(t("common:error"), t("common:failedAction"))
+              }
+            },
+          },
+        ],
+      )
     },
-    [loadUpcoming],
+    [t],
   )
 
-  const renderItem = ({ item }: { item: UpcomingActivity }) => {
+  const renderItem = ({ item }: { item: MyActivity }) => {
     const startsAt = new Date(item.starts_at)
-    const timeStr = startsAt.toLocaleString("pt-BR", {
+    const timeStr = startsAt.toLocaleString(undefined, {
       day: "2-digit",
       month: "2-digit",
       hour: "2-digit",
@@ -98,32 +110,28 @@ export const UpcomingListScreen = () => {
             <Text style={styles.msgBadgeText}>{formatBadge(msgCount)}</Text>
           </View>
         )}
-        {item.my_status === "joined" && (
-          <TouchableOpacity
-            style={styles.confirmBtn}
-            onPress={() => handleConfirm(item.id)}
-          >
-            <Text style={styles.confirmText}>{t("upcoming:confirm")}</Text>
-          </TouchableOpacity>
-        )}
-        {item.my_status === "confirmed" && (
-          <View style={styles.confirmedBadge}>
-            <Text style={styles.confirmedText}>OK</Text>
-          </View>
-        )}
+        <View style={styles.statusBadge}>
+          <Text style={styles.statusText}>{item.status}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.deleteBtn}
+          onPress={() => handleDelete(item.id, item.title)}
+        >
+          <Text style={styles.deleteBtnText}>{"🗑"}</Text>
+        </TouchableOpacity>
       </TouchableOpacity>
     )
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>{t("upcoming:title")}</Text>
+      <Text style={styles.header}>{t("myEvents:title")}</Text>
       <FlatList
         data={activities}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListEmptyComponent={<Text style={styles.empty}>{t("upcoming:empty")}</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{t("myEvents:empty")}</Text>}
         contentContainerStyle={activities.length === 0 ? styles.emptyContainer : undefined}
       />
     </View>
@@ -162,20 +170,18 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   msgBadgeText: { color: C.white, fontSize: 12, fontWeight: "700" },
-  confirmBtn: {
+  statusBadge: {
     backgroundColor: C.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 8,
+    marginRight: 8,
   },
-  confirmText: { color: C.white, fontWeight: "600", fontSize: 13 },
-  confirmedBadge: {
-    backgroundColor: C.success,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  statusText: { color: C.white, fontSize: 12, fontWeight: "600", textTransform: "uppercase" },
+  deleteBtn: {
+    padding: 6,
   },
-  confirmedText: { color: C.white, fontWeight: "600", fontSize: 13 },
+  deleteBtnText: { fontSize: 18 },
   empty: { textAlign: "center", fontSize: 16, color: C.subtle },
   emptyContainer: { flex: 1, justifyContent: "center" },
 })

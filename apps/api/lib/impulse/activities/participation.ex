@@ -15,6 +15,7 @@ defmodule Impulse.Activities.Participation do
     field :attended_at, :utc_datetime
     field :feedback_score, :integer
     field :feedback_text, :string
+    field :last_read_at, :utc_datetime
 
     belongs_to :user, Impulse.Accounts.User
     belongs_to :activity, Impulse.Activities.Activity

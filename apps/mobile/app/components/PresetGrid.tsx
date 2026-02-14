@@ -1,5 +1,11 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native"
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native"
 import type { Preset } from "@impulse/shared"
+
+import { colors } from "@/theme/colors"
+
+import { PresetIcon } from "./PresetIcon"
+
+const C = colors.palette
 
 interface PresetGridProps {
   presets: Preset[]
@@ -9,36 +15,42 @@ interface PresetGridProps {
 
 export const PresetGrid = ({ presets, selectedId, onSelect }: PresetGridProps) => {
   return (
-    <View style={styles.grid}>
-      {presets.map((preset) => (
-        <TouchableOpacity
-          key={preset.id}
-          style={[styles.item, selectedId === preset.id && styles.selected]}
-          onPress={() => onSelect(preset)}
-        >
-          <Text style={styles.icon}>{preset.icon}</Text>
-          <Text style={[styles.name, selectedId === preset.id && styles.selectedText]}>
-            {preset.name}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <View style={styles.grid}>
+        {presets.map((preset) => (
+          <TouchableOpacity
+            key={preset.id}
+            style={[styles.item, selectedId === preset.id && styles.selected]}
+            onPress={() => onSelect(preset)}
+          >
+            <PresetIcon
+              icon={preset.icon}
+              size={28}
+              color={selectedId === preset.id ? C.primary : C.textSecondary}
+            />
+            <Text style={[styles.name, selectedId === preset.id && styles.selectedText]}>
+              {preset.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  grid: { flexDirection: "row", gap: 10, paddingHorizontal: 4 },
   item: {
-    width: "30%",
-    backgroundColor: "#f0f0f0",
-    borderRadius: 12,
-    paddingVertical: 16,
     alignItems: "center",
-    borderWidth: 2,
+    backgroundColor: C.inputBg,
     borderColor: "transparent",
+    borderRadius: 12,
+    borderWidth: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    width: 80,
   },
-  selected: { borderColor: "#6C63FF", backgroundColor: "#F0EFFF" },
-  icon: { fontSize: 28, marginBottom: 4 },
-  name: { fontSize: 13, fontWeight: "600", color: "#333" },
-  selectedText: { color: "#6C63FF" },
+  name: { color: C.textSecondary, fontSize: 11, fontWeight: "600", marginTop: 4, textAlign: "center" },
+  selected: { backgroundColor: C.primaryLight, borderColor: C.primary },
+  selectedText: { color: C.primary },
 })

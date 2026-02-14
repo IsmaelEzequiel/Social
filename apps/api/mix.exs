@@ -79,8 +79,7 @@ defmodule Impulse.MixProject do
       {:req, "~> 0.5"},
 
       # CORS
-      {:corsica, "~> 2.1"},
-
+      {:corsica, "~> 2.1"}
     ]
   end
 

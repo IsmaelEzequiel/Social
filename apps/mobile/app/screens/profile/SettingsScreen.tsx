@@ -11,6 +11,8 @@ import {
 import { useTranslation } from "react-i18next"
 import { useNavigation } from "@react-navigation/native"
 import { api } from "@/services/api"
+import { colors } from "@/theme/colors"
+const C = colors.palette
 
 interface UserProfile {
   display_name: string
@@ -97,7 +99,7 @@ export const SettingsScreen = () => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
+  container: { flex: 1, backgroundColor: C.card },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -106,19 +108,19 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 12,
   },
-  backText: { color: "#6C63FF", fontSize: 16 },
+  backText: { color: C.primary, fontSize: 16 },
   title: { fontSize: 20, fontWeight: "700" },
   section: {
-    backgroundColor: "#fff",
+    backgroundColor: C.white,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 12,
     padding: 16,
   },
-  label: { fontSize: 14, fontWeight: "600", color: "#666", marginBottom: 8 },
+  label: { fontSize: 14, fontWeight: "600", color: C.textSecondary, marginBottom: 8 },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: C.divider,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
@@ -128,14 +130,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: C.inputBg,
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarSelected: { backgroundColor: "#6C63FF" },
+  avatarSelected: { backgroundColor: C.primary },
   avatarNum: { fontWeight: "700", fontSize: 16 },
   saveBtn: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: C.primary,
     marginHorizontal: 16,
     marginTop: 24,
     padding: 16,
@@ -143,5 +145,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  saveBtnText: { color: C.white, fontWeight: "700", fontSize: 16 },
 })

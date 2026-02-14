@@ -17,14 +17,14 @@ defmodule Impulse.Repo.Migrations.AddAuthProviderFieldsToUsers do
 
     # Partial unique index: phone_hash must be unique only when present
     create unique_index(:users, [:phone_hash],
-      where: "phone_hash IS NOT NULL",
-      name: :users_phone_hash_index
-    )
+             where: "phone_hash IS NOT NULL",
+             name: :users_phone_hash_index
+           )
 
     # Composite unique index for social auth providers
     create unique_index(:users, [:auth_provider, :auth_provider_id],
-      where: "auth_provider_id IS NOT NULL",
-      name: :users_auth_provider_provider_id_index
-    )
+             where: "auth_provider_id IS NOT NULL",
+             name: :users_auth_provider_provider_id_index
+           )
   end
 end

@@ -16,9 +16,14 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack"
 import type { Channel } from "phoenix"
 import { useTranslation } from "react-i18next"
 
+import { PresetIcon } from "@/components/PresetIcon"
+import { useAuth } from "@/context/AuthContext"
 import type { AppStackParamList } from "@/navigators/navigationTypes"
 import { api } from "@/services/api"
 import { socketService } from "@/services/socket/socket-service"
+import { colors } from "@/theme/colors"
+
+const C = colors.palette
 
 type Nav = NativeStackNavigationProp<AppStackParamList>
 type Route = RouteProp<AppStackParamList, "EventRoom">
@@ -53,6 +58,7 @@ export const EventRoomScreen = () => {
   const navigation = useNavigation<Nav>()
   const route = useRoute<Route>()
   const { activityId } = route.params
+  const { userId } = useAuth()
 
   const [activity, setActivity] = useState<ActivityDetail | null>(null)
   const [activeTab, setActiveTab] = useState<"chat" | "participants">("chat")
@@ -111,9 +117,10 @@ export const EventRoomScreen = () => {
         setMessages(resp.messages)
       })
 
-      // Listen for new messages
+      // Listen for new messages and mark as read
       channel.on("chat:message", (msg: ChatMessage) => {
         setMessages((prev) => [...prev, msg])
+        channel.push("chat:read", {})
       })
 
       // Listen for participant events
@@ -188,27 +195,49 @@ export const EventRoomScreen = () => {
     if (res.ok) {
       setShowReport(false)
       setReportReason("")
-      Alert.alert(t("eventRoom:report.title"), "Report submitted.")
+      Alert.alert(t("eventRoom:report.title"), t("eventRoom:report.submitted"))
     }
   }, [reportReason, activityId, activity?.creator_id, t])
 
-  const renderMessage = ({ item }: { item: ChatMessage }) => (
-    <View style={styles.message}>
-      <View style={styles.avatarCircle}>
-        <Text style={styles.avatarText}>{item.avatar_preset}</Text>
+  const renderMessage = ({ item }: { item: ChatMessage }) => {
+    const isMe = item.user_id === userId
+
+    if (isMe) {
+      return (
+        <View style={styles.messageMe}>
+          <Text style={styles.msgTimeMe}>
+            {new Date(item.inserted_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text>
+          <View style={styles.bubbleMe}>
+            <Text style={styles.msgBodyMe}>{item.body}</Text>
+          </View>
+        </View>
+      )
+    }
+
+    return (
+      <View style={styles.message}>
+        <View style={styles.avatarCircle}>
+          <Text style={styles.avatarText}>{item.avatar_preset}</Text>
+        </View>
+        <View style={styles.msgContent}>
+          <Text style={styles.msgName}>{item.display_name}</Text>
+          <View style={styles.bubbleOther}>
+            <Text style={styles.msgBody}>{item.body}</Text>
+          </View>
+        </View>
+        <Text style={styles.msgTime}>
+          {new Date(item.inserted_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </Text>
       </View>
-      <View style={styles.msgContent}>
-        <Text style={styles.msgName}>{item.display_name}</Text>
-        <Text style={styles.msgBody}>{item.body}</Text>
-      </View>
-      <Text style={styles.msgTime}>
-        {new Date(item.inserted_at).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </Text>
-    </View>
-  )
+    )
+  }
 
   const renderParticipant = ({ item }: { item: ParticipantData }) => (
     <View style={styles.participantRow}>
@@ -256,7 +285,7 @@ export const EventRoomScreen = () => {
           <Text style={styles.backText}>{t("common:back")}</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerIcon}>{activity.preset?.icon || "?"}</Text>
+          <PresetIcon icon={activity.preset?.icon || "lightning-bolt"} size={24} color={C.primary} />
           <Text style={styles.headerTitle} numberOfLines={1}>
             {activity.title}
           </Text>
@@ -264,7 +293,12 @@ export const EventRoomScreen = () => {
             {activity.participant_count || 0}/{activity.max_participants}
           </Text>
         </View>
-        <View style={styles.headerRight} />
+        <TouchableOpacity
+          style={styles.headerRight}
+          onPress={() => setShowReport(!showReport)}
+        >
+          <Text style={styles.reportIcon}>{"⚠️"}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Tabs */}
@@ -291,10 +325,6 @@ export const EventRoomScreen = () => {
       {/* Chat Tab */}
       {activeTab === "chat" && (
         <>
-          <View style={styles.ephemeralNotice}>
-            <Text style={styles.ephemeralText}>{t("activity:chat.ephemeralNotice")}</Text>
-          </View>
-
           <FlatList
             ref={listRef}
             data={messages}
@@ -349,13 +379,6 @@ export const EventRoomScreen = () => {
         </View>
       )}
 
-      {/* Bottom Actions */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.reportBtn} onPress={() => setShowReport(!showReport)}>
-          <Text style={styles.reportBtnText}>{t("eventRoom:report.button")}</Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Report Input */}
       {showReport && (
         <View style={styles.reportSheet}>
@@ -364,7 +387,7 @@ export const EventRoomScreen = () => {
             style={styles.reportInput}
             value={reportReason}
             onChangeText={setReportReason}
-            placeholder="Reason..."
+            placeholder={t("eventRoom:report.reasonPlaceholder")}
             placeholderTextColor="#999"
             multiline
           />
@@ -379,42 +402,31 @@ export const EventRoomScreen = () => {
 
 const styles = StyleSheet.create({
   approveBtn: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: C.success,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  approveBtnText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  approveBtnText: { color: C.white, fontSize: 13, fontWeight: "600" },
   avatarCircle: {
     alignItems: "center",
-    backgroundColor: "#6C63FF",
+    backgroundColor: C.primary,
     borderRadius: 18,
     height: 36,
     justifyContent: "center",
     marginRight: 10,
     width: 36,
   },
-  avatarText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  avatarText: { color: C.white, fontSize: 14, fontWeight: "700" },
   backBtn: { width: 60 },
-  backText: { color: "#6C63FF", fontSize: 16 },
-  bottomBar: {
-    backgroundColor: "#fff",
-    borderTopColor: "#eee",
-    borderTopWidth: 1,
-    flexDirection: "row",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
+  backText: { color: C.primary, fontSize: 16 },
   chatList: { flex: 1 },
-  container: { backgroundColor: "#f8f8f8", flex: 1 },
-  emptyText: { color: "#999", fontSize: 15, marginTop: 32, textAlign: "center" },
-  ephemeralNotice: { alignItems: "center", backgroundColor: "#FFF3CD", padding: 10 },
-  ephemeralText: { color: "#856404", fontSize: 12 },
+  container: { backgroundColor: C.card, flex: 1 },
+  emptyText: { color: C.subtle, fontSize: 15, marginTop: 32, textAlign: "center" },
   header: {
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderBottomColor: "#eee",
+    backgroundColor: C.white,
+    borderBottomColor: C.divider,
     borderBottomWidth: 1,
     flexDirection: "row",
     paddingBottom: 12,
@@ -423,11 +435,12 @@ const styles = StyleSheet.create({
   },
   headerCenter: { alignItems: "center", flex: 1 },
   headerIcon: { fontSize: 24 },
-  headerMeta: { color: "#666", fontSize: 13, marginTop: 2 },
-  headerRight: { width: 60 },
+  headerMeta: { color: C.textSecondary, fontSize: 13, marginTop: 2 },
+  headerRight: { width: 60, alignItems: "flex-end" },
+  reportIcon: { fontSize: 20 },
   headerTitle: { fontSize: 16, fontWeight: "700", marginTop: 2 },
   input: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: C.inputBg,
     borderRadius: 20,
     flex: 1,
     fontSize: 15,
@@ -436,8 +449,8 @@ const styles = StyleSheet.create({
   },
   inputRow: {
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderTopColor: "#eee",
+    backgroundColor: C.white,
+    borderTopColor: C.divider,
     borderTopWidth: 1,
     flexDirection: "row",
     padding: 12,
@@ -445,11 +458,34 @@ const styles = StyleSheet.create({
   listContent: { padding: 16, paddingBottom: 8 },
   loadingContainer: { alignItems: "center", flex: 1, justifyContent: "center" },
   message: { alignItems: "flex-start", flexDirection: "row", marginBottom: 12 },
-  msgBody: { color: "#444", fontSize: 15, marginTop: 2 },
+  messageMe: {
+    alignItems: "flex-end",
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginBottom: 12,
+  },
+  bubbleOther: {
+    backgroundColor: C.white,
+    borderRadius: 16,
+    borderTopLeftRadius: 4,
+    marginTop: 4,
+    padding: 10,
+    maxWidth: "85%",
+  },
+  bubbleMe: {
+    backgroundColor: C.primary,
+    borderRadius: 16,
+    borderTopRightRadius: 4,
+    padding: 10,
+    maxWidth: "85%",
+  },
+  msgBody: { color: C.textSecondary, fontSize: 15 },
+  msgBodyMe: { color: C.white, fontSize: 15 },
   msgContent: { flex: 1 },
-  msgName: { color: "#333", fontSize: 14, fontWeight: "600" },
-  msgTime: { color: "#999", fontSize: 11, marginLeft: 8, marginTop: 2 },
-  participantName: { color: "#333", flex: 1, fontSize: 15, fontWeight: "600" },
+  msgName: { color: C.text, fontSize: 14, fontWeight: "600" },
+  msgTime: { color: C.subtle, fontSize: 11, marginLeft: 8, marginTop: 2 },
+  msgTimeMe: { color: C.subtle, fontSize: 11, marginRight: 8, marginTop: 2 },
+  participantName: { color: C.text, flex: 1, fontSize: 15, fontWeight: "600" },
   participantRow: {
     alignItems: "center",
     flexDirection: "row",
@@ -461,28 +497,20 @@ const styles = StyleSheet.create({
   pendingActions: { flexDirection: "row", gap: 8 },
   pendingSection: {
     backgroundColor: "#FFF9E6",
-    borderBottomColor: "#eee",
+    borderBottomColor: C.divider,
     borderBottomWidth: 1,
     paddingBottom: 4,
     paddingTop: 12,
   },
   rejectBtn: {
-    backgroundColor: "#FF5252",
+    backgroundColor: C.flash,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  rejectBtnText: { color: "#fff", fontSize: 13, fontWeight: "600" },
-  reportBtn: {
-    borderColor: "#FF5252",
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  reportBtnText: { color: "#FF5252", fontSize: 14, fontWeight: "600" },
+  rejectBtnText: { color: C.white, fontSize: 13, fontWeight: "600" },
   reportInput: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: C.inputBg,
     borderRadius: 12,
     fontSize: 15,
     minHeight: 80,
@@ -490,19 +518,19 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   reportSheet: {
-    backgroundColor: "#fff",
-    borderTopColor: "#eee",
+    backgroundColor: C.white,
+    borderTopColor: C.divider,
     borderTopWidth: 1,
     padding: 16,
   },
   reportSubmitBtn: {
     alignItems: "center",
-    backgroundColor: "#FF5252",
+    backgroundColor: C.flash,
     borderRadius: 10,
     marginTop: 12,
     padding: 12,
   },
-  reportSubmitText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  reportSubmitText: { color: C.white, fontSize: 15, fontWeight: "700" },
   reportTitle: { fontSize: 16, fontWeight: "700", marginBottom: 8 },
   sectionTitle: {
     color: "#856404",
@@ -512,13 +540,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   sendBtn: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: C.primary,
     borderRadius: 20,
     marginLeft: 10,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  sendText: { color: "#fff", fontWeight: "600" },
+  sendText: { color: C.white, fontWeight: "600" },
   tab: {
     alignItems: "center",
     borderBottomColor: "transparent",
@@ -526,13 +554,13 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
   },
-  tabActive: { borderBottomColor: "#6C63FF" },
+  tabActive: { borderBottomColor: C.primary },
   tabBar: {
-    backgroundColor: "#fff",
-    borderBottomColor: "#eee",
+    backgroundColor: C.white,
+    borderBottomColor: C.divider,
     borderBottomWidth: 1,
     flexDirection: "row",
   },
-  tabText: { color: "#999", fontSize: 15, fontWeight: "600" },
-  tabTextActive: { color: "#6C63FF" },
+  tabText: { color: C.subtle, fontSize: 15, fontWeight: "600" },
+  tabTextActive: { color: C.primary },
 })
