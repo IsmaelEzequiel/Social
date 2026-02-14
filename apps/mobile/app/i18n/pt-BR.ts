@@ -9,6 +9,9 @@ const ptBR = {
     save: "Salvar",
     confirm: "Confirmar",
     delete: "Excluir",
+    send: "Enviar",
+    error: "Erro",
+    failedAction: "Ação falhou. Tente novamente.",
   },
   auth: {
     authMethod: {
@@ -58,6 +61,10 @@ const ptBR = {
       km10: "10 km",
       km25: "25 km",
     },
+    empty: {
+      title: "Nada acontecendo por perto",
+      subtitle: "Seja o primeiro! Toque em + para criar uma atividade",
+    },
   },
   activity: {
     flash: "Flash",
@@ -65,19 +72,26 @@ const ptBR = {
     requestToJoin: "Solicitar participação",
     pendingApproval: "Aguardando aprovação",
     create: {
-      title: "Nova atividade",
-      choosePreset: "Escolha o tipo",
+      title: "Nova Atividade",
+      choosePreset: "O quê?",
       chooseLocation: "Onde será?",
       chooseTime: "Quando começa?",
       chooseParticipants: "Quantas pessoas?",
       duration: "Duração",
       minutes: "{{count}} min",
       create: "Criar atividade",
+      createFlash: "Criar Flash",
+      now: "Agora",
+      endsAt: "Termina por volta de ~{{time}}",
+      includingYou: "{{count}} pessoas incluindo você",
+      currentLocation: "Localização atual",
     },
     detail: {
       creator: "Criado por {{name}}",
       spotsLeft: "{{count}} vagas restantes",
       confirmed: "{{count}} confirmados",
+      startingNow: "Começando agora",
+      enterLive: "Entrar ao vivo",
     },
     chat: {
       placeholder: "Mensagem...",
@@ -86,6 +100,12 @@ const ptBR = {
     feedback: {
       title: "Como foi?",
       submit: "Enviar",
+      thankYou: "Obrigado pelo feedback!",
+      doAgain: "Faria isso de novo?",
+      yes: "Sim",
+      maybe: "Talvez",
+      no: "Não",
+      done: "Pronto",
     },
   },
   eventRoom: {
@@ -96,6 +116,8 @@ const ptBR = {
     report: {
       button: "Denunciar",
       title: "Denunciar atividade",
+      submitted: "Denúncia enviada",
+      reasonPlaceholder: "Motivo...",
     },
     participants: {
       pending: "Solicitações pendentes",
@@ -105,6 +127,12 @@ const ptBR = {
       pendingEmpty: "Nenhuma solicitação pendente",
     },
     pendingApproval: "Aguardando aprovação do organizador...",
+  },
+  myEvents: {
+    title: "Meus Eventos",
+    empty: "Você ainda não criou nenhum evento",
+    deleteTitle: "Excluir Evento",
+    deleteConfirm: "Tem certeza que deseja excluir \"{{title}}\"?",
   },
   upcoming: {
     title: "Próximos",

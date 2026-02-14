@@ -29,8 +29,21 @@ defmodule ImpulseWeb.ActivityController do
   end
 
   def upcoming(conn, _params) do
-    activities = Activities.list_upcoming()
-    render(conn, :index, activities: activities)
+    user = conn.assigns.current_user
+    activities = Activities.list_my_activities(user.id)
+    render(conn, :index, activities: activities, current_user_id: user.id)
+  end
+
+  def messages_count(conn, _params) do
+    user = conn.assigns.current_user
+    count = Impulse.Chat.count_unread_for_user_activities(user.id)
+    json(conn, %{count: count})
+  end
+
+  def mine(conn, _params) do
+    user = conn.assigns.current_user
+    activities = Activities.list_created_activities(user.id)
+    render(conn, :index, activities: activities, current_user_id: user.id)
   end
 
   def show(conn, %{"id" => id}) do
@@ -49,6 +62,27 @@ defmodule ImpulseWeb.ActivityController do
           participant_count: participant_count,
           my_participation_status: my_status
         )
+    end
+  end
+
+  def delete(conn, %{"id" => activity_id}) do
+    user = conn.assigns.current_user
+
+    case Activities.delete_activity(user, activity_id) do
+      {:ok, _activity} ->
+        Phoenix.PubSub.broadcast(
+          Impulse.PubSub,
+          "map:activity_updates",
+          {:activity_deleted, activity_id}
+        )
+
+        json(conn, %{message: "deleted"})
+
+      {:error, :not_found} ->
+        conn |> put_status(:not_found) |> json(%{error: "not_found"})
+
+      {:error, :not_owner} ->
+        conn |> put_status(:forbidden) |> json(%{error: "not_owner"})
     end
   end
 

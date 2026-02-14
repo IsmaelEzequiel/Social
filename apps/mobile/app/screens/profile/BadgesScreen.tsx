@@ -3,6 +3,8 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet } from "react-native
 import { useTranslation } from "react-i18next"
 import { useNavigation } from "@react-navigation/native"
 import { api } from "@/services/api"
+import { colors } from "@/theme/colors"
+const C = colors.palette
 
 interface Badge {
   id: string
@@ -72,7 +74,7 @@ export const BadgesScreen = () => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
+  container: { flex: 1, backgroundColor: C.card },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -81,13 +83,13 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 12,
   },
-  backText: { color: "#6C63FF", fontSize: 16 },
+  backText: { color: C.primary, fontSize: 16 },
   title: { fontSize: 20, fontWeight: "700" },
   list: { padding: 16 },
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: C.white,
     padding: 16,
     borderRadius: 12,
     marginBottom: 8,
@@ -104,6 +106,6 @@ const styles = StyleSheet.create({
   badgeEmoji: { fontSize: 24 },
   badgeInfo: { flex: 1 },
   badgeName: { fontSize: 16, fontWeight: "600" },
-  badgeDate: { fontSize: 13, color: "#666", marginTop: 2 },
-  empty: { textAlign: "center", fontSize: 16, color: "#999", marginTop: 60 },
+  badgeDate: { fontSize: 13, color: C.textSecondary, marginTop: 2 },
+  empty: { textAlign: "center", fontSize: 16, color: C.subtle, marginTop: 60 },
 })

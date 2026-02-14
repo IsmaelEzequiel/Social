@@ -10,6 +10,8 @@ import {
 } from "react-native"
 import { useTranslation } from "react-i18next"
 import { api } from "@/services/api"
+import { colors } from "@/theme/colors"
+const C = colors.palette
 
 const AVATARS = Array.from({ length: 20 }, (_, i) => i + 1)
 
@@ -77,7 +79,7 @@ export const ProfileSetupScreen = () => {
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={C.white} />
         ) : (
           <Text style={styles.buttonText}>{t("auth:profileSetup.finish")}</Text>
         )}
@@ -91,7 +93,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: "bold", marginBottom: 24 },
   label: { fontSize: 16, fontWeight: "600", marginBottom: 8, marginTop: 16 },
   input: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: C.inputBg,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
@@ -102,20 +104,20 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: C.inputBg,
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarSelected: { backgroundColor: "#6C63FF" },
+  avatarSelected: { backgroundColor: C.primary },
   avatarText: { fontSize: 20, fontWeight: "bold" },
   error: { color: "#e53935", marginTop: 12 },
   button: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: C.primary,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 24,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "600" },
+  buttonText: { color: C.white, fontSize: 18, fontWeight: "600" },
 })

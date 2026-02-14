@@ -5,6 +5,8 @@ import type { AuthStackScreenProps } from "@/navigators/navigationTypes"
 import { useAuth } from "@/context/AuthContext"
 import { authService } from "@/services/api/auth-service"
 import { getDeviceFingerprint } from "@/services/device/fingerprint"
+import { colors } from "@/theme/colors"
+const C = colors.palette
 
 const CODE_LENGTH = 6
 const RESEND_DELAY = 60
@@ -98,9 +100,9 @@ export const CodeVerificationScreen = ({
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, justifyContent: "center" },
   title: { fontSize: 28, fontWeight: "bold", marginBottom: 8 },
-  subtitle: { fontSize: 16, color: "#666", marginBottom: 32 },
+  subtitle: { fontSize: 16, color: C.textSecondary, marginBottom: 32 },
   codeInput: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: C.inputBg,
     fontSize: 32,
     letterSpacing: 12,
     textAlign: "center",
@@ -110,6 +112,6 @@ const styles = StyleSheet.create({
   },
   error: { color: "#e53935", textAlign: "center", marginBottom: 12 },
   loader: { marginBottom: 12 },
-  resend: { textAlign: "center", color: "#6C63FF", fontSize: 16 },
-  resendDisabled: { color: "#999" },
+  resend: { textAlign: "center", color: C.primary, fontSize: 16 },
+  resendDisabled: { color: C.subtle },
 })

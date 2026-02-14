@@ -27,6 +27,7 @@ defmodule ImpulseWeb.ActivityChannel do
           inserted_at: message.inserted_at
         })
 
+        Chat.mark_as_read(user.id, activity_id)
         {:noreply, socket}
 
       {:error, _changeset} ->
@@ -35,10 +36,13 @@ defmodule ImpulseWeb.ActivityChannel do
   end
 
   def handle_in("chat:history", _payload, socket) do
+    user = socket.assigns.current_user
     activity_id = socket.assigns.activity_id
-    joined_at = socket.assigns.joined_at
 
-    messages = Chat.list_messages_after(activity_id, joined_at)
+    messages = Chat.list_messages(activity_id)
+
+    # Mark messages as read for this user
+    Chat.mark_as_read(user.id, activity_id)
 
     message_data =
       Enum.map(messages, fn m ->
@@ -53,6 +57,13 @@ defmodule ImpulseWeb.ActivityChannel do
       end)
 
     {:reply, {:ok, %{messages: message_data}}, socket}
+  end
+
+  def handle_in("chat:read", _payload, socket) do
+    user = socket.assigns.current_user
+    activity_id = socket.assigns.activity_id
+    Chat.mark_as_read(user.id, activity_id)
+    {:reply, {:ok, %{}}, socket}
   end
 
   def handle_in("participants:list", _payload, socket) do

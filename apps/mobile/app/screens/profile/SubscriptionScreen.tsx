@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, Linking } 
 import { useTranslation } from "react-i18next"
 import { useNavigation } from "@react-navigation/native"
 import { api } from "@/services/api"
+import { colors } from "@/theme/colors"
+const C = colors.palette
 
 export const SubscriptionScreen = () => {
   const { t } = useTranslation()
@@ -89,14 +91,14 @@ export const SubscriptionScreen = () => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f8f8" },
+  container: { flex: 1, backgroundColor: C.card },
   header: { padding: 16, paddingTop: 60 },
-  backText: { color: "#6C63FF", fontSize: 16 },
+  backText: { color: C.primary, fontSize: 16 },
   hero: { alignItems: "center", paddingVertical: 32 },
-  title: { fontSize: 28, fontWeight: "800", color: "#6C63FF" },
-  price: { fontSize: 20, fontWeight: "600", color: "#333", marginTop: 8 },
+  title: { fontSize: 28, fontWeight: "800", color: C.primary },
+  price: { fontSize: 20, fontWeight: "600", color: C.textSecondary, marginTop: 8 },
   benefits: {
-    backgroundColor: "#fff",
+    backgroundColor: C.white,
     marginHorizontal: 16,
     borderRadius: 12,
     padding: 20,
@@ -104,9 +106,9 @@ const styles = StyleSheet.create({
   },
   benefitItem: { flexDirection: "row", alignItems: "center" },
   benefitCheck: { fontSize: 20, marginRight: 12, color: "#4CAF50" },
-  benefitText: { fontSize: 16, color: "#333", flex: 1 },
+  benefitText: { fontSize: 16, color: C.text, flex: 1 },
   subscribeBtn: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: C.primary,
     marginHorizontal: 16,
     marginTop: 24,
     padding: 18,
@@ -114,7 +116,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   subscribeBtnDisabled: { opacity: 0.6 },
-  subscribeBtnText: { color: "#fff", fontWeight: "700", fontSize: 18 },
+  subscribeBtnText: { color: C.white, fontWeight: "700", fontSize: 18 },
   cancelLink: {
     alignItems: "center",
     marginTop: 16,

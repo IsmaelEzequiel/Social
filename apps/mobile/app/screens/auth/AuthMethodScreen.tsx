@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next"
 import type { AuthStackScreenProps } from "@/navigators/navigationTypes"
 import { useAuth } from "@/context/AuthContext"
 import { auth0Service } from "@/services/api/auth0-service"
+import { colors } from "@/theme/colors"
+const C = colors.palette
 
 export const AuthMethodScreen = ({ navigation }: AuthStackScreenProps<"AuthMethod">) => {
   const { t } = useTranslation()
@@ -47,7 +49,7 @@ export const AuthMethodScreen = ({ navigation }: AuthStackScreenProps<"AuthMetho
           disabled={loading !== null}
         >
           {loading === "google" ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={C.white} />
           ) : (
             <Text style={styles.buttonText}>{t("auth:authMethod.google")}</Text>
           )}
@@ -60,7 +62,7 @@ export const AuthMethodScreen = ({ navigation }: AuthStackScreenProps<"AuthMetho
             disabled={loading !== null}
           >
             {loading === "apple" ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={C.white} />
             ) : (
               <Text style={styles.buttonText}>{t("auth:authMethod.apple")}</Text>
             )}
@@ -84,7 +86,7 @@ export const AuthMethodScreen = ({ navigation }: AuthStackScreenProps<"AuthMetho
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, justifyContent: "center" },
   title: { fontSize: 28, fontWeight: "bold", marginBottom: 8 },
-  subtitle: { fontSize: 16, color: "#666", marginBottom: 40 },
+  subtitle: { fontSize: 16, color: C.textSecondary, marginBottom: 40 },
   buttons: { gap: 12 },
   button: {
     paddingVertical: 16,
@@ -96,9 +98,9 @@ const styles = StyleSheet.create({
   phoneButton: {
     backgroundColor: "transparent",
     borderWidth: 2,
-    borderColor: "#6C63FF",
+    borderColor: C.primary,
   },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "600" },
-  phoneButtonText: { color: "#6C63FF", fontSize: 18, fontWeight: "600" },
+  buttonText: { color: C.white, fontSize: 18, fontWeight: "600" },
+  phoneButtonText: { color: C.primary, fontSize: 18, fontWeight: "600" },
   error: { color: "#e53935", textAlign: "center", marginTop: 16 },
 })

@@ -85,6 +85,36 @@ defmodule Impulse.Activities do
     |> Repo.all()
   end
 
+  def list_created_activities(user_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 50)
+
+    from(a in Activity,
+      where: a.creator_id == ^user_id,
+      where: a.status in [:open, :full, :active],
+      order_by: [desc: a.starts_at],
+      limit: ^limit,
+      preload: [:creator, :preset]
+    )
+    |> Repo.all()
+  end
+
+  def list_my_activities(user_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, 50)
+
+    from(a in Activity,
+      join: p in Participation,
+      on: p.activity_id == a.id,
+      where: p.user_id == ^user_id,
+      where: a.creator_id != ^user_id,
+      where: p.status in [:joined, :confirmed, :pending],
+      where: a.status in [:open, :full, :active],
+      order_by: [asc: a.starts_at],
+      limit: ^limit,
+      preload: [:creator, :preset]
+    )
+    |> Repo.all()
+  end
+
   # --- Join / Leave ---
 
   def join_activity(user, activity_id) do
@@ -245,6 +275,14 @@ defmodule Impulse.Activities do
         participation
         |> Participation.feedback_changeset(%{feedback_score: score, feedback_text: text})
         |> Repo.update()
+    end
+  end
+
+  # --- Delete ---
+
+  def delete_activity(owner, activity_id) do
+    with {:ok, activity} <- get_owned_activity(owner, activity_id) do
+      Repo.delete(activity)
     end
   end
 

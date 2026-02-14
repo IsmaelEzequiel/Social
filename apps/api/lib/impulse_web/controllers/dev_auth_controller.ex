@@ -21,11 +21,16 @@ defmodule ImpulseWeb.DevAuthController do
       nil ->
         conn
         |> put_status(:not_found)
-        |> json(%{error: "user_not_found", message: "No user with that phone. Run mix run priv/repo/seeds.exs first."})
+        |> json(%{
+          error: "user_not_found",
+          message: "No user with that phone. Run mix run priv/repo/seeds.exs first."
+        })
 
       user ->
-        {:ok, access_token, _} = Guardian.encode_and_sign(user, %{}, ttl: {15, :minute})
-        {:ok, refresh_token, _} = Guardian.encode_and_sign(user, %{"typ" => "refresh"}, ttl: {30, :day})
+        {:ok, access_token, _} = Guardian.encode_and_sign(user, %{}, ttl: {7, :day})
+
+        {:ok, refresh_token, _} =
+          Guardian.encode_and_sign(user, %{"typ" => "refresh"}, ttl: {30, :day})
 
         json(conn, %{
           user: %{

@@ -1,26 +1,84 @@
+/**
+ * Design system color palette — based on the UX/UI audit (dashboard.md Section 7).
+ *
+ * Primary:     #6C63FF  (purple — brand)
+ * Flash:       #FF6B6B  (warm red — urgency, "happening now")
+ * Planned:     #4ECDC4  (teal — calm, "scheduled")
+ * Success:     #2ECC71  (green — joined, confirmed)
+ * Warning:     #F39C12  (amber — filling up, time running out)
+ * Text:        #1A1A2E  (near-black)
+ * Subtle:      #8E8E93  (grey for secondary text)
+ * Background:  #FFFFFF
+ * Card:        #F8F8FA
+ */
+
 const palette = {
+  // Brand
+  primary: "#6C63FF",
+  primaryLight: "#F0EFFF",
+
+  // Activity modes
+  flash: "#FF6B6B",
+  planned: "#4ECDC4",
+
+  // Status
+  success: "#2ECC71",
+  warning: "#F39C12",
+  error: "#C03403",
+  errorLight: "#F2D6CD",
+
+  // Pin colors
+  pinGreen: "#2ECC71",
+  pinBlue: "#2196F3",
+  pinYellow: "#F39C12",
+  pinPurple: "#6C63FF",
+  pinGrey: "#8E8E93",
+
+  // Neutrals
+  text: "#1A1A2E",
+  textSecondary: "#444444",
+  subtle: "#8E8E93",
+  border: "#DDDDDD",
+  disabled: "#CCCCCC",
+  divider: "#E0E0E0",
+
+  // Surfaces
+  background: "#FFFFFF",
+  card: "#F8F8FA",
+  inputBg: "#F0F0F0",
+
+  // Core
+  white: "#FFFFFF",
+  black: "#000000",
+
+  // Overlays
+  overlay20: "rgba(25, 16, 21, 0.2)",
+  overlay50: "rgba(25, 16, 21, 0.5)",
+  shadowBlack: "#000000",
+
+  // Legacy Ignite palette aliases (for boilerplate components: Button, Card, etc.)
   neutral100: "#FFFFFF",
-  neutral200: "#F4F2F1",
-  neutral300: "#D7CEC9",
-  neutral400: "#B6ACA6",
-  neutral500: "#978F8A",
-  neutral600: "#564E4A",
-  neutral700: "#3C3836",
-  neutral800: "#191015",
+  neutral200: "#F8F8FA",
+  neutral300: "#E0E0E0",
+  neutral400: "#CCCCCC",
+  neutral500: "#8E8E93",
+  neutral600: "#666666",
+  neutral700: "#444444",
+  neutral800: "#1A1A2E",
   neutral900: "#000000",
 
-  primary100: "#F4E0D9",
-  primary200: "#E8C1B4",
-  primary300: "#DDA28E",
-  primary400: "#D28468",
-  primary500: "#C76542",
-  primary600: "#A54F31",
+  primary100: "#F0EFFF",
+  primary200: "#D6D3FF",
+  primary300: "#ABA5FF",
+  primary400: "#8F86FF",
+  primary500: "#6C63FF",
+  primary600: "#5046CC",
 
-  secondary100: "#DCDDE9",
-  secondary200: "#BCC0D6",
-  secondary300: "#9196B9",
-  secondary400: "#626894",
-  secondary500: "#41476E",
+  secondary100: "#E0F7F4",
+  secondary200: "#B3ECE3",
+  secondary300: "#80E0D2",
+  secondary400: "#66D7C6",
+  secondary500: "#4ECDC4",
 
   accent100: "#FFEED4",
   accent200: "#FFE1B2",
@@ -30,56 +88,51 @@ const palette = {
 
   angry100: "#F2D6CD",
   angry500: "#C03403",
-
-  overlay20: "rgba(25, 16, 21, 0.2)",
-  overlay50: "rgba(25, 16, 21, 0.5)",
 } as const
 
 export const colors = {
   /**
-   * The palette is available to use, but prefer using the name.
-   * This is only included for rare, one-off cases. Try to use
-   * semantic names as much as possible.
+   * The raw palette. Prefer semantic names below.
    */
   palette,
   /**
-   * A helper for making something see-thru.
+   * Transparent helper.
    */
   transparent: "rgba(0, 0, 0, 0)",
   /**
-   * The default text color in many components.
+   * Primary text color.
    */
-  text: palette.neutral800,
+  text: palette.text,
   /**
-   * Secondary text information.
+   * Secondary/dim text.
    */
-  textDim: palette.neutral600,
+  textDim: palette.subtle,
   /**
-   * The default color of the screen background.
+   * Screen background.
    */
-  background: palette.neutral200,
+  background: palette.card,
   /**
-   * The default border color.
+   * Default border color.
    */
-  border: palette.neutral400,
+  border: palette.border,
   /**
-   * The main tinting color.
+   * Main brand tint.
    */
-  tint: palette.primary500,
+  tint: palette.primary,
   /**
-   * The inactive tinting color.
+   * Inactive tint (for tab bars etc).
    */
-  tintInactive: palette.neutral300,
+  tintInactive: palette.subtle,
   /**
-   * A subtle color used for lines.
+   * Separator lines.
    */
-  separator: palette.neutral300,
+  separator: palette.divider,
   /**
-   * Error messages.
+   * Error text/icon.
    */
-  error: palette.angry500,
+  error: palette.error,
   /**
-   * Error Background.
+   * Error backgrounds.
    */
-  errorBackground: palette.angry100,
+  errorBackground: palette.errorLight,
 } as const

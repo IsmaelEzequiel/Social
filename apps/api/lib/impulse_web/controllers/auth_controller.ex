@@ -29,7 +29,7 @@ defmodule ImpulseWeb.AuthController do
              display_name: "Impulser",
              device_fingerprint: fingerprint
            }),
-         {:ok, access_token, _claims} <- Guardian.encode_and_sign(user, %{}, ttl: {15, :minute}),
+         {:ok, access_token, _claims} <- Guardian.encode_and_sign(user, %{}, ttl: {7, :day}),
          {:ok, refresh_token, _claims} <-
            Guardian.encode_and_sign(user, %{"typ" => "refresh"}, ttl: {30, :day}) do
       conn
@@ -62,7 +62,7 @@ defmodule ImpulseWeb.AuthController do
     with {:ok, claims} <- Guardian.decode_and_verify(refresh_token),
          %{"typ" => "refresh"} <- claims,
          {:ok, user} <- Guardian.resource_from_claims(claims),
-         {:ok, new_access, _claims} <- Guardian.encode_and_sign(user, %{}, ttl: {15, :minute}),
+         {:ok, new_access, _claims} <- Guardian.encode_and_sign(user, %{}, ttl: {7, :day}),
          {:ok, new_refresh, _claims} <-
            Guardian.encode_and_sign(user, %{"typ" => "refresh"}, ttl: {30, :day}) do
       conn
@@ -86,7 +86,7 @@ defmodule ImpulseWeb.AuthController do
              display_name: identity.name || "Impulser",
              device_fingerprint: fingerprint
            }),
-         {:ok, access_token, _claims} <- Guardian.encode_and_sign(user, %{}, ttl: {15, :minute}),
+         {:ok, access_token, _claims} <- Guardian.encode_and_sign(user, %{}, ttl: {7, :day}),
          {:ok, refresh_token, _claims} <-
            Guardian.encode_and_sign(user, %{"typ" => "refresh"}, ttl: {30, :day}) do
       conn
@@ -110,7 +110,10 @@ defmodule ImpulseWeb.AuthController do
       {:error, :unsupported_provider} ->
         conn
         |> put_status(:unprocessable_entity)
-        |> json(%{error: "unsupported_provider", message: "Only Google and Apple sign-in are supported"})
+        |> json(%{
+          error: "unsupported_provider",
+          message: "Only Google and Apple sign-in are supported"
+        })
 
       {:error, %Ecto.Changeset{} = changeset} ->
         conn

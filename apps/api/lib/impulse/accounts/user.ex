@@ -52,13 +52,13 @@ defmodule Impulse.Accounts.User do
     |> validate_length(:device_fingerprint, is: 64)
     |> validate_inclusion(:avatar_preset, 1..20)
     |> unique_constraint(:phone_hash, name: :users_phone_hash_index)
-    |> unique_constraint(:device_fingerprint)
   end
 
   def social_registration_changeset(user, attrs) do
     user
     |> cast(attrs, @social_required_fields ++ @social_optional_fields)
     |> validate_required(@social_required_fields)
+    |> sanitize_display_name()
     |> validate_length(:display_name, min: 2, max: 30)
     |> validate_format(:display_name, ~r/^[a-zA-ZÀ-ÿ0-9 \-]+$/)
     |> validate_length(:device_fingerprint, is: 64)
@@ -67,7 +67,6 @@ defmodule Impulse.Accounts.User do
     |> unique_constraint([:auth_provider, :auth_provider_id],
       name: :users_auth_provider_provider_id_index
     )
-    |> unique_constraint(:device_fingerprint)
   end
 
   def profile_changeset(user, attrs) do
@@ -76,6 +75,22 @@ defmodule Impulse.Accounts.User do
     |> validate_length(:display_name, min: 2, max: 30)
     |> validate_format(:display_name, ~r/^[a-zA-ZÀ-ÿ0-9 \-]+$/)
     |> validate_inclusion(:avatar_preset, 1..20)
+  end
+
+  defp sanitize_display_name(changeset) do
+    case get_change(changeset, :display_name) do
+      nil ->
+        changeset
+
+      name ->
+        sanitized =
+          name
+          |> String.replace(~r/[^a-zA-ZÀ-ÿ0-9 \-]/, "")
+          |> String.replace(~r/ +/, " ")
+          |> String.trim()
+
+        put_change(changeset, :display_name, sanitized)
+    end
   end
 
   def trust_changeset(user, attrs) do

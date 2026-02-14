@@ -18,6 +18,7 @@ export type AuthStackParamList = {
 // Main Tab Navigator
 export type MainTabParamList = {
   MapTab: undefined
+  MyEventsTab: undefined
   UpcomingTab: undefined
   ProfileTab: undefined
 }

@@ -1,26 +1,44 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import type { Activity } from "@impulse/shared"
+import * as Haptics from "expo-haptics"
 import { useTranslation } from "react-i18next"
 
+import { PresetIcon } from "@/components/PresetIcon"
 import { api } from "@/services/api"
+import { colors } from "@/theme/colors"
+
+const C = colors.palette
 
 interface ActivityDetailModalProps {
   activity: Activity & {
     participant_count?: number
     my_participation_status?: string | null
+    time_until_start_minutes?: number
+    time_remaining_minutes?: number
     preset?: { name: string; icon: string }
+    creator?: { display_name: string; avatar_preset: number; activities_created_count?: number }
   }
-  onJoined: () => void
+  onJoined: (activityId: string) => void
   onLeft: () => void
   onClose: () => void
+  onReport?: () => void
+}
+
+function formatTimeLabel(minutes: number): string {
+  if (minutes <= 0) return ""
+  if (minutes < 60) return `${minutes} min`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m > 0 ? `${h}h ${m}min` : `${h}h`
 }
 
 export const ActivityDetailModal = ({
   activity,
   onJoined,
-  onLeft,
   onClose,
+  onReport,
 }: ActivityDetailModalProps) => {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
@@ -31,39 +49,74 @@ export const ActivityDetailModal = ({
     const res = await api.post<{ status: string }>(`/activities/${activity.id}/join`)
     setLoading(false)
     if (res.ok) {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
       if (res.data?.status === "pending") {
         setIsPending(true)
       } else {
-        onJoined()
+        onJoined(activity.id)
       }
     }
   }, [activity.id, onJoined])
 
   const isFull = activity.status === "full"
   const spotsLeft = activity.max_participants - (activity.participant_count || 0)
+  const timeUntilStart = activity.time_until_start_minutes ?? 0
+  const timeRemaining = activity.time_remaining_minutes ?? 0
+  const isActive = activity.status === "active"
+
+  const timeDisplay = useMemo(() => {
+    if (isActive) return t("map:endsIn", { time: formatTimeLabel(timeRemaining) })
+    if (timeUntilStart <= 0) return t("activity:detail.startingNow")
+    return t("map:startsIn", { time: formatTimeLabel(timeUntilStart) })
+  }, [isActive, timeUntilStart, timeRemaining, t])
 
   return (
     <View style={styles.container}>
+      {/* Header row */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>{activity.title}</Text>
-          {activity.location_name && <Text style={styles.location}>{activity.location_name}</Text>}
+        <View style={styles.headerLeft}>
+          <PresetIcon icon={activity.preset?.icon || "lightning-bolt"} size={28} color={C.primary} />
+          <Text style={styles.title} numberOfLines={1}>
+            {activity.preset?.name || activity.title}
+          </Text>
         </View>
-        <TouchableOpacity onPress={onClose}>
-          <Text style={styles.close}>X</Text>
-        </TouchableOpacity>
+        <Text style={styles.timeLabel}>{timeDisplay}</Text>
       </View>
 
-      <View style={styles.info}>
-        <Text style={styles.infoText}>
-          {activity.participant_count}/{activity.max_participants}{" "}
-          {t("map:participants", { count: activity.participant_count || 0 })}
-        </Text>
-        {!isFull && (
-          <Text style={styles.spots}>{t("activity:detail.spotsLeft", { count: spotsLeft })}</Text>
+      {/* Info rows */}
+      <View style={styles.infoSection}>
+        {activity.location_name && (
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="map-marker-outline" size={16} color={C.subtle} />
+            <Text style={styles.infoText}>{activity.location_name}</Text>
+          </View>
         )}
+        <View style={styles.infoRow}>
+          <MaterialCommunityIcons name="clock-outline" size={16} color={C.subtle} />
+          <Text style={styles.infoText}>{activity.duration_minutes} min</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <MaterialCommunityIcons name="account-group-outline" size={16} color={C.subtle} />
+          <Text style={styles.infoText}>
+            {activity.participant_count || 0}/{activity.max_participants}{" "}
+            {t("map:participants", { count: activity.participant_count || 0 })}
+          </Text>
+        </View>
       </View>
 
+      {/* Creator */}
+      {activity.creator && (
+        <View style={styles.creatorRow}>
+          <View style={styles.creatorAvatar}>
+            <Text style={styles.creatorAvatarText}>{activity.creator.avatar_preset}</Text>
+          </View>
+          <Text style={styles.creatorName}>
+            {t("activity:detail.creator", { name: activity.creator.display_name })}
+          </Text>
+        </View>
+      )}
+
+      {/* Action buttons */}
       {isPending ? (
         <View style={styles.pendingBadge}>
           <Text style={styles.pendingText}>{t("activity:pendingApproval")}</Text>
@@ -87,6 +140,13 @@ export const ActivityDetailModal = ({
           )}
         </TouchableOpacity>
       )}
+
+      {/* Share + Report row */}
+      <View style={styles.footerRow}>
+        <TouchableOpacity onPress={onReport}>
+          <Text style={styles.footerAction}>{t("eventRoom:report.button")}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   )
 }
@@ -94,25 +154,50 @@ export const ActivityDetailModal = ({
 const styles = StyleSheet.create({
   button: {
     alignItems: "center",
-    backgroundColor: "#6C63FF",
+    backgroundColor: C.primary,
     borderRadius: 12,
     paddingVertical: 16,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "600" },
-  close: { color: "#999", fontSize: 20, padding: 4 },
+  buttonText: { color: C.white, fontSize: 18, fontWeight: "600" },
   container: {
-    backgroundColor: "#fff",
+    backgroundColor: C.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
   },
-  fullButton: { backgroundColor: "#ccc" },
-  fullText: { color: "#666", fontSize: 18, fontWeight: "600" },
-  header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 16 },
-  info: { marginBottom: 20 },
-  infoText: { color: "#333", fontSize: 16 },
-  location: { color: "#666", fontSize: 14, marginTop: 2 },
+  creatorAvatar: {
+    alignItems: "center",
+    backgroundColor: C.primary,
+    borderRadius: 14,
+    height: 28,
+    justifyContent: "center",
+    marginRight: 8,
+    width: 28,
+  },
+  creatorAvatarText: { color: C.white, fontSize: 12, fontWeight: "700" },
+  creatorName: { color: C.textSecondary, fontSize: 14 },
+  creatorRow: { alignItems: "center", flexDirection: "row", marginBottom: 20 },
+  footerAction: { color: C.subtle, fontSize: 14 },
+  footerRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 12,
+    paddingTop: 12,
+  },
+  fullButton: { backgroundColor: C.disabled },
+  fullText: { color: C.textSecondary, fontSize: 18, fontWeight: "600" },
+  header: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  headerLeft: { alignItems: "center", flexDirection: "row", flex: 1, gap: 10 },
+  infoRow: { alignItems: "center", flexDirection: "row", gap: 6, marginBottom: 6 },
+  infoSection: { marginBottom: 16 },
+  infoText: { color: C.textSecondary, fontSize: 14 },
   pendingBadge: {
     alignItems: "center",
     backgroundColor: "#FFF3CD",
@@ -120,6 +205,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   pendingText: { color: "#856404", fontSize: 16, fontWeight: "600" },
-  spots: { color: "#6C63FF", fontSize: 14, marginTop: 4 },
-  title: { fontSize: 22, fontWeight: "bold" },
+  timeLabel: { color: C.success, fontSize: 14, fontWeight: "600" },
+  title: { fontSize: 20, fontWeight: "bold", flex: 1 },
 })

@@ -24,7 +24,9 @@ config :impulse, ImpulseWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: System.get_env("SECRET_KEY_BASE") || "iRAq9jpZJdBQvuBeGIheb6FzOv1iJnwtAiqlykekJPQYANN99z0NKWm2zSxQYtY7",
+  secret_key_base:
+    System.get_env("SECRET_KEY_BASE") ||
+      "iRAq9jpZJdBQvuBeGIheb6FzOv1iJnwtAiqlykekJPQYANN99z0NKWm2zSxQYtY7",
   watchers: []
 
 # ## SSL Support

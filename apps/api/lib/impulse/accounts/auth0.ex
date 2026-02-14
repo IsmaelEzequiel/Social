@@ -37,7 +37,7 @@ defmodule Impulse.Accounts.Auth0 do
 
         case Req.get(url) do
           {:ok, %{status: 200, body: %{"keys" => keys}}} ->
-            jwks = JOSE.JWK.from_map(%{"keys" => keys})
+            jwks = Enum.map(keys, &JOSE.JWK.from_map/1)
             cache_jwks(jwks)
             {:ok, jwks}
 
@@ -56,31 +56,42 @@ defmodule Impulse.Accounts.Auth0 do
     expected_issuer = "https://#{domain}/"
 
     try do
-      {verified, jwt} = JOSE.JWT.verify(jwks, id_token)
+      case verify_with_keys(jwks, id_token) do
+        {:ok, claims} ->
+          now = System.system_time(:second)
 
-      if not verified do
-        {:error, :invalid_signature}
-      else
-        claims = jwt.fields
-        now = System.system_time(:second)
+          cond do
+            claims["iss"] != expected_issuer ->
+              {:error, :invalid_issuer}
 
-        cond do
-          claims["iss"] != expected_issuer ->
-            {:error, :invalid_issuer}
+            claims["aud"] != client_id and client_id not in List.wrap(claims["aud"]) ->
+              {:error, :invalid_audience}
 
-          claims["aud"] != client_id and client_id not in List.wrap(claims["aud"]) ->
-            {:error, :invalid_audience}
+            is_integer(claims["exp"]) and claims["exp"] < now ->
+              {:error, :token_expired}
 
-          is_integer(claims["exp"]) and claims["exp"] < now ->
-            {:error, :token_expired}
+            true ->
+              {:ok, claims}
+          end
 
-          true ->
-            {:ok, claims}
-        end
+        {:error, reason} ->
+          {:error, reason}
       end
     rescue
-      _ -> {:error, :token_verification_failed}
+      e ->
+        require Logger
+        Logger.error("Token verification failed: #{inspect(e)}")
+        {:error, :token_verification_failed}
     end
+  end
+
+  defp verify_with_keys(jwks, id_token) do
+    Enum.find_value(jwks, {:error, :invalid_signature}, fn jwk ->
+      case JOSE.JWT.verify(jwk, id_token) do
+        {true, %JOSE.JWT{fields: fields}, _jws} -> {:ok, fields}
+        _ -> nil
+      end
+    end)
   end
 
   defp extract_identity(claims) do
@@ -106,17 +117,18 @@ defmodule Impulse.Accounts.Auth0 do
   defp parse_provider("apple|" <> id), do: {:ok, "apple", id}
   defp parse_provider(_), do: :error
 
-  # Simple ETS-based JWKS cache
+  # Simple persistent_term-based JWKS cache
   defp get_cached_jwks do
     case :persistent_term.get({__MODULE__, :jwks}, nil) do
-      {jwks, cached_at} ->
+      {jwks, cached_at} when is_list(jwks) ->
         if System.monotonic_time(:millisecond) - cached_at < @jwks_cache_ttl do
           {:ok, jwks}
         else
           :miss
         end
 
-      nil ->
+      # Invalidate stale cache with wrong format
+      _other ->
         :miss
     end
   end
